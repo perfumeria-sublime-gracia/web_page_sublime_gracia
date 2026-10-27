@@ -1,3 +1,4 @@
+import Sequelize from "sequelize";
 import { Productos } from "../models/products.model.js";
 import { ProductoPresentacion } from "../models/productoPresentacion.model.js";
 import { obtenerPromocionesVigentes, calcularPrecioPromocional } from "../services/promocion.service.js";
@@ -111,15 +112,15 @@ export const listarProductosAdmin = async (req, res) => {
     const { search, genero, activo, stock } = req.query;
     const where = {};
     if (search) {
-        where.$or = [
-            { nombre: { $iLike: `%${search}%` } },
-            { marca: { $iLike: `%${search}%` } }
+        where[Sequelize.Op.or] = [
+            { nombre: { [Sequelize.Op.iLike]: `%${search}%` } },
+            { marca: { [Sequelize.Op.iLike]: `%${search}%` } }
         ];
     }
     if (genero && GENEROS.includes(String(genero).toUpperCase())) where.genero = String(genero).toUpperCase();
     if (activo === "true" || activo === "false") where.activo = activo === "true";
-    if (stock === "disponible") where.stock = { $gt: 0 };
-    if (stock === "agotado") where.$or = [{ stock: 0 }, { stock: null }];
+    if (stock === "disponible") where.stock = { [Sequelize.Op.gt]: 0 };
+    if (stock === "agotado") where[Sequelize.Op.or] = [{ stock: 0 }, { stock: null }];
 
     const productos = await Productos.findAll({ where, include: [incluirPresentaciones], order: [["createdAt", "DESC"]] });
     res.json(await enriquecer(productos));

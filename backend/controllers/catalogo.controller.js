@@ -1,4 +1,5 @@
 import { Productos } from "../models/products.model.js"
+import Sequelize from "sequelize"
 
 import {
     obtenerPromocionesVigentes,
@@ -216,7 +217,7 @@ export const getAllProducts = async (req, res) => {
             : 1;
         const limite = 20;
         const where = {
-            "$or": [
+            [Sequelize.Op.or]: [
                 { activo: true },
                 { activo: null }
             ]
@@ -242,7 +243,7 @@ export const getAllProducts = async (req, res) => {
             Productos.findAll({
                 attributes: ["segmentacion"],
                 where: {
-                    "$or": [
+                    [Sequelize.Op.or]: [
                         { activo: true },
                         { activo: null }
                     ]
@@ -292,7 +293,7 @@ export const getProductsSeg = async (req, res) => {
 
                     segmentacion: seg,
 
-                    "$or": [
+                    [Sequelize.Op.or]: [
                         { activo: true },
                         { activo: null }
                     ]
