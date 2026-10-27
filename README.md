@@ -14,7 +14,7 @@ Una Application moderna, fluida y altamente optimizada para la interacción del 
 *   **Módulo Administrativo:** Vistas protegidas para la gestión integral de productos, control de pedidos y administración de promociones/anuncios.
 *   **Integración:** Conexión asíncrona a la API REST mediante variables de entorno (`VITE_API_URL`) y manejo avanzado de carritos a través del encabezado `X-Cart-Id` y cookies de sesión.
 
-### ⚙️ 2. Backend (`/backend`)
+### 2. Backend (`/backend`)
 Una API REST escalable, segura y estructurada que actúa como el motor central de datos y lógica del negocio.
 
 *   **Stack:** Node.js (v20.6+), Express, Sequelize (ORM), PostgreSQL.
