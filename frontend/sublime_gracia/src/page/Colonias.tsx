@@ -115,12 +115,16 @@ const Colonias = () => {
     const seleccionarImagen = (event: React.ChangeEvent<HTMLInputElement>) => {
         const archivo = event.target.files?.[0];
         if (!archivo) return;
-        if (!archivo.type.startsWith("image/")) {
-            setError("Selecciona una imagen válida");
+        if (!["image/avif", "image/gif", "image/jpeg", "image/png", "image/webp"].includes(archivo.type)) {
+            setImagen(null);
+            setPreview("");
+            setError("Selecciona una imagen PNG, JPG, JPEG, GIF, WEBP o AVIF");
             return;
         }
-        if (archivo.size > 10 * 1024 * 1024) {
-            setError("La imagen no puede superar los 10 MB");
+        if (archivo.size > 5 * 1024 * 1024) {
+            setImagen(null);
+            setPreview("");
+            setError("La imagen no puede superar los 5 MB");
             return;
         }
         setError("");
@@ -252,7 +256,7 @@ const Colonias = () => {
                         <option>Otros</option>
                         </select>
                     <textarea required placeholder="Descripción" value={formulario.descripcion} onChange={(e) => cambiarCampo("descripcion", e.target.value)} />
-                    <label className="colonia-imagen">Imagen<input type="file" accept="image/*" onChange={seleccionarImagen} /></label>
+                    <label className="colonia-imagen">Imagen<input type="file" accept=".avif,.gif,.jfif,.jpeg,.jpg,.png,.webp" onChange={seleccionarImagen} /></label>
                     {preview && <img className="colonia-preview" src={preview} alt="Vista previa" onError={marcarImagenNoDisponible} />}
                     <label className="colonia-estado"><input type="checkbox" checked={formulario.activo} onChange={(e) => cambiarCampo("activo", e.target.checked)} /> Disponible</label>
                     <div className="presentaciones-form">
