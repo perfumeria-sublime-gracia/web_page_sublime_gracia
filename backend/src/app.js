@@ -7,7 +7,7 @@ import { securityHeaders, rateLimit } from "../middlewares/security.middleware.j
 import { uploadsRoot } from "../utils/uploadStorage.js";
 
 const app = express()
-const originsPermitidos = ['https://sublime-gracia.netlify.app', "http://localhost:5173"]
+const originsPermitidos = ['https://sublime-gracia.netlify.app', "http://localhost:5173", "https://sublime-gracia.netlify.app/"]
 
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
