@@ -1,5 +1,7 @@
 import db from '../db/connect.js'
-import { DataTypes } from 'sequelize'
+import Sequelize from 'sequelize'
+
+const { DataTypes } = Sequelize
 
 export const Productos = db.define('productos', {
     id: {

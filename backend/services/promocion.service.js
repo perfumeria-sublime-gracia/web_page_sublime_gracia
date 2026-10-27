@@ -1,4 +1,3 @@
-import { Op } from "sequelize";
 import { Promocion } from "../models/promocion.model.js";
 
 const inicioDelDia = (fecha) => new Date(`${fecha}T00:00:00`);
@@ -14,8 +13,8 @@ export const obtenerPromocionesVigentes = async () => {
     return Promocion.findAll({
         where: {
             activa: true,
-            fechaInicio: { [Op.lte]: hoy },
-            fechaFin: { [Op.gte]: hoy }
+            fechaInicio: { $lte: hoy },
+            fechaFin: { $gte: hoy }
         },
         include: [
             { association: "productos", required: false },
