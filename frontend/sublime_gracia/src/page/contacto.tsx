@@ -118,7 +118,7 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
                 <a
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => window.open("https://wa.me/573107647687", "_blank")}
+                    onClick={() => window.open("https://wa.me/573017089860", "_blank")}
                 >
                     <span>WhatsApp</span>
                     <img
