@@ -172,7 +172,7 @@ const pages: Record<
     sections: [
       [
         "1. Producto equivocado, defectuoso o pedido incompleto",
-        "Si recibes un producto distinto al solicitado, detectas daños atribuibles a la entrega o consideras que existe un defecto de calidad, comunícate con nosotros tan pronto como sea posible mediante [CORREO ELECTRÓNICO] o [WHATSAPP COMERCIAL]. Indica el número de pedido, explica el inconveniente y adjunta fotografías del producto, del empaque y de la guía de envío cuando estén disponibles. La solicitud se evaluará de acuerdo con la garantía legal y las obligaciones aplicables."
+        "Si recibes un producto distinto al solicitado, detectas daños atribuibles a la entrega o consideras que existe un defecto de calidad, comunícate con nosotros tan pronto como sea posible mediante correo electrónico gsublime378@gmail.com o whatsApp al número (+57) 301-708-9860. Indica el número de pedido, explica el inconveniente y adjunta fotografías del producto, del empaque y de la guía de envío cuando estén disponibles. La solicitud se evaluará de acuerdo con la garantía legal y las obligaciones aplicables."
       ],
       [
         "2. Garantía legal",
@@ -204,7 +204,7 @@ const pages: Record<
       ],
       [
         "9. Cómo presentar una solicitud",
-        "Contacta a Sublime Gracia mediante [CORREO ELECTRÓNICO], [WHATSAPP COMERCIAL] o en el punto físico ubicado en [DIRECCIÓN]. Incluye nombre, número de pedido, fecha de recepción, descripción del caso y evidencia disponible. No envíes productos de regreso sin solicitar primero instrucciones sobre el procedimiento de devolución, salvo que debas actuar por un término legal y las circunstancias requieran otra actuación."
+        "Contacta a Sublime Gracia mediante correo electrónico gsublime378@gmail.com, whatsApp al número (+57) 301-708-9860 o en el punto físico ubicado en San Pedro Sucre calle 19 #06-43 barrio San Martin. Incluye nombre, número de pedido, fecha de recepción, descripción del caso y evidencia disponible. No envíes productos de regreso sin solicitar primero instrucciones sobre el procedimiento de devolución, salvo que debas actuar por un término legal y las circunstancias requieran otra actuación."
       ],
       [
         "10. Tiempo de respuesta",
