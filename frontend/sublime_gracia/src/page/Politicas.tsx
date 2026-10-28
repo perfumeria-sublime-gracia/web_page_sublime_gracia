@@ -32,7 +32,7 @@ const pages: Record<
       ],
       [
         "5. Cómo presentar consultas y reclamaciones",
-        "Puedes ejercer tus derechos mediante correo electronico gsublime378@gmail.com o whatsApp al número: (+57) 301-708-9860, o en el punto físico indicado en esta política. Indica tu nombre, la solicitud concreta y la información necesaria para verificar tu identidad. Las consultas y reclamaciones se atenderán dentro de los términos legales aplicables. Las consultas tienen, como regla general, un plazo de diez (5-7) días hábiles, y los reclamos de quince (7-10) días hábiles, sujetos a las reglas y extensiones previstas en la normativa."
+        "Puedes ejercer tus derechos mediante correo electronico gsublime378@gmail.com o whatsApp al número: (+57) 301-708-9860, o en el punto físico indicado en esta política. Indica tu nombre, la solicitud concreta y la información necesaria para verificar tu identidad. Las consultas y reclamaciones se atenderán dentro de los términos legales aplicables. Las consultas tienen, como regla general, un plazo de (5-7) días hábiles, y los reclamos de (7-10) días hábiles, sujetos a las reglas y extensiones previstas en la normativa."
       ],
       [
         "6. Proveedores y almacenamiento",
