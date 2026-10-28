@@ -93,7 +93,7 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
                 <h2>Redes</h2>
 
                 <a
-                    href="https://www.facebook.com/sublimegracia"
+                    href="https://www.facebook.com/profile.php?id=61580902880617"
                     target="_blank"
                     rel="noopener noreferrer"
                 >
@@ -105,7 +105,7 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
                 </a>
 
                 <a
-                    href="https://www.instagram.com/sublimegracia"
+                    href="https://www.instagram.com/sg_perfumeriasp?cplk=MWprOG94dGU4M2s0MA%3D%3D&utm_source=qr"
                     target="_blank"
                     rel="noopener noreferrer"
                 >
