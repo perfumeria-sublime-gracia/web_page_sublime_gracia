@@ -12,11 +12,11 @@ const pages: Record<
   privacidad: {
     title: "Política de privacidad y tratamiento de datos personales",
     intro:
-      "En Sublime Gracia respetamos la privacidad de nuestros clientes y protegemos sus datos personales de acuerdo con la Ley 1581 de 2012, sus normas reglamentarias y las demás disposiciones colombianas aplicables. Responsable del tratamiento: [NOMBRE LEGAL COMPLETO DEL VENDEDOR], persona natural. Esta política explica qué información recopilamos, para qué la utilizamos y cómo puedes ejercer tus derechos.",
+      "En Sublime Gracia respetamos la privacidad de nuestros clientes y protegemos sus datos personales de acuerdo con la Ley 1581 de 2012, sus normas reglamentarias y las demás disposiciones colombianas aplicables. Responsable del tratamiento: Juan Andres Castro Prasca, persona natural. Esta política explica qué información recopilamos, para qué la utilizamos y cómo puedes ejercer tus derechos.",
     sections: [
       [
         "1. Responsable y contacto",
-        "El responsable del tratamiento es [NOMBRE LEGAL COMPLETO DEL VENDEDOR], con domicilio en [MUNICIPIO Y DEPARTAMENTO]. Puedes presentar consultas, solicitudes o reclamaciones mediante [CORREO ELECTRÓNICO DE ATENCIÓN], [WHATSAPP COMERCIAL] o en el punto físico ubicado en [DIRECCIÓN DEL PUNTO FÍSICO]. Estos datos deben completarse antes de publicar la política como definitiva."
+        "El responsable del tratamiento es Juan Andres Castro Prasca, con domicilio en San Pedro Sucre y veredas aledañas. Puedes presentar consultas, solicitudes o reclamaciones mediante correo electrónico gsublime378@gmail.com, whatsApp al número: (+57) 301-708-9860  o en el punto físico ubicado en San Pedro Sucre calle 19 #06-43 barrio San Martin."
       ],
       [
         "2. Datos personales que recopilamos",
@@ -32,7 +32,7 @@ const pages: Record<
       ],
       [
         "5. Cómo presentar consultas y reclamaciones",
-        "Puedes ejercer tus derechos mediante [CORREO ELECTRÓNICO DE ATENCIÓN] o [WHATSAPP COMERCIAL], o en el punto físico indicado en esta política. Indica tu nombre, la solicitud concreta y la información necesaria para verificar tu identidad. Las consultas y reclamaciones se atenderán dentro de los términos legales aplicables. Las consultas tienen, como regla general, un plazo de diez (10) días hábiles, y los reclamos de quince (15) días hábiles, sujetos a las reglas y extensiones previstas en la normativa."
+        "Puedes ejercer tus derechos mediante correo electronico gsublime378@gmail.com o whatsApp al número: (+57) 301-708-9860, o en el punto físico indicado en esta política. Indica tu nombre, la solicitud concreta y la información necesaria para verificar tu identidad. Las consultas y reclamaciones se atenderán dentro de los términos legales aplicables. Las consultas tienen, como regla general, un plazo de diez (5-7) días hábiles, y los reclamos de quince (7-10) días hábiles, sujetos a las reglas y extensiones previstas en la normativa."
       ],
       [
         "6. Proveedores y almacenamiento",
