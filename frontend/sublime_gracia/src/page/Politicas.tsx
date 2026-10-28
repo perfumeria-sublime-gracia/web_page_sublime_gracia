@@ -16,7 +16,7 @@ const pages: Record<
     sections: [
       [
         "1. Responsable y contacto",
-        "El responsable del tratamiento es Juan Andres Castro Prasca, con domicilio en San Pedro Sucre y veredas aledañas. Puedes presentar consultas, solicitudes o reclamaciones mediante correo electrónico gsublime378@gmail.com, whatsApp al número: (+57) 301-708-9860  o en el punto físico ubicado en San Pedro Sucre calle 19 #06-43 barrio San Martin."
+        "El responsable del tratamiento es Juan Andres Castro Prasca, con domicilio en San Pedro Sucre. Puedes presentar consultas, solicitudes o reclamaciones mediante correo electrónico gsublime378@gmail.com, whatsApp al número: (+57) 301-708-9860  o en el punto físico ubicado en San Pedro Sucre calle 19 #06-43 barrio San Martin."
       ],
       [
         "2. Datos personales que recopilamos",
@@ -68,7 +68,7 @@ const pages: Record<
     sections: [
       [
         "1. Identidad del vendedor",
-        "El vendedor es [NOMBRE LEGAL COMPLETO DEL VENDEDOR], persona natural, con domicilio en [MUNICIPIO Y DEPARTAMENTO]. Canales de atención: [CORREO ELECTRÓNICO], [WHATSAPP COMERCIAL] y punto físico en [DIRECCIÓN]. Esta información debe completarse y mantenerse actualizada para que el comprador pueda identificar al proveedor y presentar reclamaciones."
+        "El vendedor es Juan Andres Castro Prasca, persona natural, con domicilio en San Pedro Sucre. Canales de atención: gsublime378@gmail.com, whatsApp al número: (+57) 301-708-9860  y punto físico en San Pedro Sucre calle 19 #06-43 barrio San Martin. Esta información debe completarse y mantenerse actualizada para que el comprador pueda identificar al proveedor y presentar reclamaciones."
       ],
       [
         "2. Productos, descripciones y disponibilidad",

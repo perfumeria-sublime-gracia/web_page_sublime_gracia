@@ -16,12 +16,14 @@ import Politicas from "./page/Politicas";
 import CasosExito from "./page/CasosExito";
 import Envios from "./page/envios";
 import NotFound from "./page/NotFound";
+import ScrollToTop from './scrollToTop'
 
 
 function Router() {
 
     return (
-
+        <>
+        <ScrollToTop />
         <Routes>
 
             {/* INICIO */}
@@ -100,6 +102,7 @@ function Router() {
             />
             <Route path="*" element={<NotFound />} />
         </Routes>
+        </>
     );
 }
 
