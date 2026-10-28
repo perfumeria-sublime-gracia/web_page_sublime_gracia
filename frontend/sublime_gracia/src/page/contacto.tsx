@@ -115,6 +115,17 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
                         alt="Instagram"
                     />
                 </a>
+                <a
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => window.open("https://wa.me/573107647687", "_blank")}
+                >
+                    <span>WhatsApp</span>
+                    <img
+                        src="/icons/icons8-whatsapp.gif"
+                        alt="WhatsApp"
+                    />
+                </a>
 
             </div>
 
