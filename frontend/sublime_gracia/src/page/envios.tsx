@@ -20,20 +20,9 @@ const Envios = () => {
                 <p className="draft-notice">
                     Dirección física exacta pendiente de confirmación. La ubicación indicada es referencial.
                 </p>
-
-                <p className="draft-notice">
-                    Dirección física exacta pendiente de confirmación. La ubicación indicada es referencial.
-                </p>
-
-                <p>
-                    <a
-                        href="https://www.google.com/maps/search/?api=1&query=San+Pedro%2C+Sucre%2C+Colombia"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        Ver mapa y obtener direcciones a San Pedro, Sucre
-                    </a>
-                </p>
+                
+                <br />
+                <br />
 
 
                 <div className="envios-tarjetas">
@@ -84,7 +73,7 @@ const Envios = () => {
                         <p>
                             Para destinos fuera de nuestra zona de
                             cobertura gratuita, el cliente deberá
-                            asumir el costo del envío.
+                            asumir el costo del envío pago contraentrega.
                         </p>
 
                     </article>
@@ -96,29 +85,35 @@ const Envios = () => {
 
                     <h2>Información importante</h2>
 
-                    <p>
-                        El valor del envío para destinos que no cuentan
-                        con envío gratuito <strong>no está incluido en
-                        el precio de los productos ni en el subtotal del carrito</strong>.
-                    </p>
 
-                    <p>
-                        En estos casos, el costo del transporte deberá
-                        ser pagado <strong>por separado del valor de la
-                        compra</strong>.
-                    </p>
+                        <p>
+                            El valor del envío para destinos que no cuentan con
+                            envío gratuito <strong>no está incluido en el precio de
+                            los productos ni en el subtotal del carrito</strong>.
+                        </p>
 
-                    <p>
-                        Antes de pedir un pago adicional, te informaremos
-                        el valor del transporte y el total actualizado
-                        para que puedas decidir si continúas.
-                    </p>
+                        <p>
+                            En estos casos, el costo del transporte se pagará 
+                            <strong> contraentrega, directamente al transportador</strong>,
+                            por separado del valor de la compra.
+                        </p>
+
+                        <p>
+                            Antes de confirmar tu pedido, te informaremos el costo
+                            del envío y el total de tu compra para que conozcas
+                            todos los valores por pagar.
+                        </p>
+
 
                 </section>
 
-                <p>
+                <p className="draft-notice">
                     Consulta también las <Link to="/devoluciones">condiciones de cambios y devoluciones</Link> antes de completar tu compra.
                 </p>
+
+                <br />
+                <br />
+
 
 
                 <section className="envio-resumen">
@@ -159,9 +154,6 @@ const Envios = () => {
                     </div>
 
                 </section>
-                <p>
-                    Consulta también las <Link to="/devoluciones">condiciones de cambios y devoluciones</Link> antes de completar tu compra.
-                </p>
 
             </section>
 

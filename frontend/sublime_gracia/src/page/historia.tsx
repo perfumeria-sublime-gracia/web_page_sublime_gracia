@@ -28,7 +28,7 @@ const Historia = () => {
                         </p>
 
                     </div>
-                    <p className="historia-frase">Tu esencia, nuestra inspiración</p>
+                    <p className="historia-frase">Tu esencia, Tu firma</p>
 
                 </div>
 

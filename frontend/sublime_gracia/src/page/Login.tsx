@@ -74,10 +74,17 @@ const Login = () => {
                 error
             )
 
-            setError(
-                error.response?.data?.message ||
-                "Correo o contraseña incorrectos"
-            )
+            if (error.response?.status === 429) {
+                setError(
+                    error.response.data?.message ||
+                    "Has alcanzado el límite de intentos fallidos. Intenta de nuevo más tarde."
+                )
+            } else {
+                setError(
+                    error.response?.data?.message ||
+                    "Correo o contraseña incorrectos"
+                )
+            }
 
         } finally {
 

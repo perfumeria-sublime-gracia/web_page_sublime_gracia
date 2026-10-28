@@ -19,7 +19,8 @@ Desde esta carpeta (`frontend/sublime_gracia`), instala las dependencias:
 npm install
 ```
 
-Crea un archivo `.env` en esta carpeta y configura la URL del backend (ver
+Copia `example.env` como `.env` en esta carpeta y completa la URL del backend,
+la configuración de EmailJS (ver
 [variables de entorno](#variables-de-entorno)). Luego ejecuta:
 
 ```bash
@@ -34,13 +35,27 @@ Vite mostrará en la terminal la dirección local para abrir en el navegador.
 | --- | --- |
 | `VITE_API_URL` | Origen base del backend, por ejemplo `http://localhost:3000`. No agregues `/api` al final; la aplicación añade ese prefijo a las solicitudes de API. |
 | `VITE_GA_MEASUREMENT_ID` | ID de medición de Google Analytics. Si no se define, la aplicación utiliza el ID predeterminado configurado en el código. |
+| `VITE_EMAILJS_SERVICE_ID` | ID del servicio EmailJS usado por el formulario de contacto. |
+| `VITE_EMAILJS_CONTACT_TEMPLATE_ID` | ID de la plantilla EmailJS que recibe las consultas de contacto. |
+| `VITE_EMAILJS_AUTOREPLY_TEMPLATE_ID` | ID de la plantilla EmailJS que confirma la recepción al remitente. |
+| `VITE_EMAILJS_PUBLIC_KEY` | Clave pública de EmailJS. |
 
 Ejemplo de `.env` para desarrollo:
 
 ```dotenv
 VITE_API_URL=http://localhost:3000
+VITE_EMAILJS_SERVICE_ID=service_k0qua76
+VITE_EMAILJS_CONTACT_TEMPLATE_ID=template_n2oi9yn
+VITE_EMAILJS_AUTOREPLY_TEMPLATE_ID=template_ihkhuy9
+VITE_EMAILJS_PUBLIC_KEY=tvdjHXbYgppa8PksY
 ```
 
+En EmailJS, configura la plantilla de contacto para enviar a
+`gsublime378@gmail.com` y usa `{{from_name}}`, `{{reply_to}}` y `{{message}}`.
+Configura la auto-respuesta para enviar a `{{to_email}}`; puede usar
+`{{email}}`, `{{to_name}}`, `{{name}}`, `{{user_email}}`, `{{user_name}}`,
+`{{reply_to}}` y `{{message}}`. El formulario espera un segundo entre el
+mensaje y la confirmación para evitar el límite de solicitudes del servicio.
 Las variables con prefijo `VITE_` se incluyen en el código del navegador; no
 guardes secretos ni credenciales privadas en ellas. El `.env` local está
 excluido de Git.

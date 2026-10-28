@@ -28,7 +28,7 @@ const Home = () => (
             </div>
             <div className="home-hero-art" aria-hidden="true">
                 <img src={fotoUnisex} alt="" />
-                <span className="home-hero-caption">Una esencia para cada historia</span>
+                <span className="home-hero-caption">Tu esencia <br /> Tu firma</span>
             </div>
         </section>
 
@@ -76,7 +76,7 @@ const Home = () => (
                 <span aria-hidden="true">02</span>
                 <div>
                     <h2>Otros destinos</h2>
-                    <p>El costo de transporte se informa por separado.</p>
+                    <p>Pago contraentrega.</p>
                 </div>
             </article>
             <Link to="/envios">Conoce las condiciones <span aria-hidden="true">→</span></Link>
