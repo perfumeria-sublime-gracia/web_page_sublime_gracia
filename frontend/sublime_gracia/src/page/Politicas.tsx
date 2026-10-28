@@ -116,11 +116,11 @@ const pages: Record<
       ],
       [
         "13. Atención de solicitudes y reclamaciones",
-        "Para consultas, solicitudes de cambio, reclamaciones de garantía o asuntos relacionados con un pedido, utiliza [CORREO ELECTRÓNICO], [WHATSAPP COMERCIAL] o visita el punto físico ubicado en [DIRECCIÓN]. Incluye los datos del pedido y una descripción clara de la solicitud. Sublime Gracia atenderá las reclamaciones conforme a los plazos y procedimientos legales aplicables."
+        "Para consultas, solicitudes de cambio, reclamaciones de garantía o asuntos relacionados con un pedido, utiliza gsublime378@gmail.com, (+57) 301-708-9860 o visita el punto físico ubicado en San Pedro Sucre calle 19 #06-43 barrio San Martin. Incluye los datos del pedido y una descripción clara de la solicitud. Sublime Gracia atenderá las reclamaciones conforme a los plazos y procedimientos legales aplicables."
       ],
       [
         "14. Protección al consumidor",
-        "Estos términos se interpretan de acuerdo con la legislación colombiana, incluyendo la Ley 1480 de 2011 y sus modificaciones. Ninguna disposición pretende limitar derechos irrenunciables del consumidor. Puedes consultar información y canales oficiales de la Superintendencia de Industria y Comercio en https://www.sic.gov.co/."
+        "Estos términos se interpretan de acuerdo con la legislación colombiana, incluyendo la Ley 1480 de 2011 y sus modificaciones. Ninguna disposición pretende limitar derechos irrenunciables del consumidor. Puedes consultar información y canales oficiales de la Superintendencia de Industria y Comercio en https://sedeelectronica.sic.gov.co/."
       ],
       [
         "15. Actualizaciones",
