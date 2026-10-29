@@ -151,18 +151,11 @@
 }
 
 .historia-imagen img {
+    display: block;
     width: 100%;
     height: 100%;
-
-    display: block;
-
-    object-fit: cover;
-
-    transition: transform 0.8s ease;
-}
-
-.historia-imagen:hover img {
-    transform: scale(1.03);
+    object-fit: contain;
+    object-position: center;
 }
 
 /* =========================

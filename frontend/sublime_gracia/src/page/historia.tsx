@@ -1,5 +1,5 @@
 import "../style/historia.css"
-import fotoHistoria from "../../uploads/COCO MADEMOISELLE.webp"
+import fotoHistoria from "/img/PerfumeSG.png"
 
 const Historia = () => {
     return (

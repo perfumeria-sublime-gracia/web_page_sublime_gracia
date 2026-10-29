@@ -5,7 +5,7 @@ import Anuncios from "./page/anuncio";
 import FeaturedProducts from "./page/FeaturedProducts";
 import fotoParaElla from "../uploads/COCO MADEMOISELLE.webp";
 import fotoParaEl from "../uploads/solo.webp";
-import fotoUnisex from "../uploads/Buongiorno.jpg";
+import fotoUnisex from "/img/PerfumeSG.png";
 
 const Home = () => (
     <main className="home-page">
@@ -27,7 +27,7 @@ const Home = () => (
                 </div>
             </div>
             <div className="home-hero-art" aria-hidden="true">
-                <img src={fotoUnisex} alt="" />
+                <img id="imgSG" src={fotoUnisex} alt="" />
                 <span className="home-hero-caption">Tu esencia <br /> Tu firma</span>
             </div>
         </section>
@@ -51,7 +51,7 @@ const Home = () => (
                     <span className="home-category-arrow" aria-hidden="true">→</span>
                 </Link>
                 <Link className="home-category-card" to="/catalogo?genero=UNISEX">
-                    <span className="home-category-image"><img src={fotoUnisex} alt="" loading="lazy" /></span>
+                    <span className="home-category-image"><img src='../uploads/Buongiorno.jpg' alt="" loading="lazy" /></span>
                     <span className="home-category-label">Unisex</span>
                     <span className="home-category-arrow" aria-hidden="true">→</span>
                 </Link>
