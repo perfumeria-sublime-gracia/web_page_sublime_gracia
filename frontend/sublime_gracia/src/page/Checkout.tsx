@@ -708,7 +708,7 @@ const Checkout = () => {
                                 </p>
 
                                 <strong>
-                                    300 XXX XXXX
+                                    301 708 9860
                                 </strong>
 
                                 <button
@@ -740,7 +740,7 @@ const Checkout = () => {
                                 </p>
 
                                 <img
-                                    src="/qr-nequi.png"
+                                    src="/img/qr.jpeg"
                                     alt="QR de pago Nequi"
                                 />
 

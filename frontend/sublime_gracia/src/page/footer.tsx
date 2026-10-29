@@ -49,8 +49,8 @@ const Footer = () => {
                     </p>
 
                     <div className="footer-redes">
-                        <a href="https://www.instagram.com/sublimegracia" target="_blank" rel="noopener noreferrer">Instagram</a>
-                        <a href="https://www.facebook.com/sublimegracia" target="_blank" rel="noopener noreferrer">Facebook</a>
+                        <a href="https://www.instagram.com/sg_perfumeriasp?cplk=MWprOG94dGU4M2s0MA%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer">Instagram</a>
+                        <a href="https://www.facebook.com/profile.php?id=61580902880617" target="_blank" rel="noopener noreferrer">Facebook</a>
                     </div>
                 </div>
 
