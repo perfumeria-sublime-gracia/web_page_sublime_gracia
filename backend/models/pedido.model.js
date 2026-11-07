@@ -64,7 +64,15 @@ export const Pedido = db.define("pedido", {
         type: DataTypes.STRING,
         allowNull: true
     },
-
+    canalVenta: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        defaultValue: "web"
+    },
+    metodoPago: {
+        type: DataTypes.STRING(30),
+        allowNull: true
+    },
     comentarioCancelacion: {
         type: DataTypes.TEXT,
         allowNull: true

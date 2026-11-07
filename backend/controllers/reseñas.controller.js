@@ -38,7 +38,7 @@ export const getReseñas = async (req, res) => {
     }
 
     const reseñas = await Reseñas.findAll({
-        where: { productoId },
+        where: { productoId, activa: true },
         order: [["createdAt", "DESC"]]
     });
     if (reseñas.length === 0) {

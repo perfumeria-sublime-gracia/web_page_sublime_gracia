@@ -1,3 +1,10 @@
 node_modules/
 .env
 dist/
+# Archivos generados por Electron
+app/dist-electron/
+app/dist/
+
+# Archivos temporales
+*.log
+.DS_Store

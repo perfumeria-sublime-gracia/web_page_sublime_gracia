@@ -13,6 +13,7 @@ import users from './userRoutes.js'
 import adminPedidoRoutes from './adminPedidoRoutes.js'
 import promociones from './promociones.js'
 import productos from './productos.js'
+import adminOperations from "./adminOperations.js";
 
 const router = Router()
 
@@ -30,5 +31,6 @@ router.use('/api', productos)
 router.use('/api/', admin)
 router.use('/api/', users)
 router.use('/api/', adminPedidoRoutes)
+router.use('/api/', adminOperations)
 
 export default router

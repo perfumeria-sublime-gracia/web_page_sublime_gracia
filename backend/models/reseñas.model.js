@@ -22,6 +22,11 @@ export const Reseñas = db.define('reseñas', {
         allowNull: false,
         validate: { min: 1, max: 5 }
     },
+    activa: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true
+    },
     productoId: {
         type: DataTypes.INTEGER,
         allowNull: true

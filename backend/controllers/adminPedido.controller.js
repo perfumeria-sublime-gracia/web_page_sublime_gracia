@@ -1,6 +1,9 @@
 import { Pedido } from "../models/pedido.model.js";
 import { PedidoItem } from "../models/pedidoItem.model.js";
 import { Productos } from "../models/products.model.js";
+import { ProductoPresentacion } from "../models/productoPresentacion.model.js";
+import { InventarioMovimiento } from "../models/inventarioMovimiento.model.js";
+import db from "../db/connect.js";
 
 
 // =========================
@@ -89,35 +92,86 @@ export const getPedido = async (req, res) => {
 // =========================
 
 export const confirmarPedido = async (req, res) => {
+    return actualizarEstadoSeguro(req, res, "pagado");
+};
+
+const actualizarEstadoSeguro = async (req, res, estado) => {
+    const transaction = await db.transaction();
     try {
-
-        const { id } = req.params;
-
-        const pedido = await Pedido.findByPk(id);
-
+        const pedido = await Pedido.findByPk(req.params.id, {
+            transaction,
+            lock: transaction.LOCK.UPDATE
+        });
         if (!pedido) {
-            return res.status(404).json({
-                message: "Pedido no encontrado"
-            });
+            await transaction.rollback();
+            return res.status(404).json({ message: "Pedido no encontrado" });
         }
 
-        pedido.estado = "pagado";
+        const terminal = ["cancelado", "rechazado"];
+        if (terminal.includes(pedido.estado) && pedido.estado !== estado) {
+            await transaction.rollback();
+            return res.status(409).json({ message: "Un pedido cancelado o rechazado no puede reactivarse." });
+        }
 
-        await pedido.save();
+        const comentarioCancelacion = String(req.body?.comentarioCancelacion || "").trim();
+        if (terminal.includes(estado) && !comentarioCancelacion) {
+            await transaction.rollback();
+            return res.status(400).json({ message: `Debes indicar el motivo del ${estado === "rechazado" ? "rechazo" : "cancelación"}` });
+        }
 
-        return res.status(200).json({
-            message: "Pedido confirmado correctamente",
-            pedido
-        });
+        if (terminal.includes(estado) && !terminal.includes(pedido.estado)) {
+            const existente = await InventarioMovimiento.findOne({
+                where: { pedidoId: pedido.id, tipo: "pedido_reintegro" },
+                transaction
+            });
+            if (!existente) {
+                const items = await PedidoItem.findAll({
+                    where: { pedidoId: pedido.id },
+                    transaction
+                });
+                for (const item of items) {
+                    const producto = await Productos.findByPk(item.productId, {
+                        transaction,
+                        lock: transaction.LOCK.UPDATE
+                    });
+                    if (!producto) continue;
 
+                    const presentacion = item.presentacionId
+                        ? await ProductoPresentacion.findOne({
+                            where: { id: item.presentacionId, productoId: producto.id },
+                            transaction,
+                            lock: transaction.LOCK.UPDATE
+                        })
+                        : null;
+                    const target = presentacion?.stock != null && Number.isInteger(Number(presentacion.stock)) ? presentacion : producto;
+                    if (!Number.isInteger(Number(target.stock))) continue;
+                    const stockAnterior = Number(target.stock);
+                    const cantidad = Number(item.cantidad);
+                    await target.update({ stock: stockAnterior + cantidad }, { transaction });
+                    await InventarioMovimiento.create({
+                        productoId: producto.id,
+                        presentacionId: target === presentacion ? presentacion.id : null,
+                        pedidoId: pedido.id,
+                        tipo: "pedido_reintegro",
+                        cantidad,
+                        stockAnterior,
+                        stockNuevo: stockAnterior + cantidad,
+                        motivo: `Pedido ${estado}`
+                    }, { transaction });
+                }
+            }
+        }
+
+        await pedido.update({
+            estado,
+            comentarioCancelacion: terminal.includes(estado) ? comentarioCancelacion : null
+        }, { transaction });
+        await transaction.commit();
+        return res.status(200).json({ message: "Estado del pedido actualizado correctamente", pedido });
     } catch (error) {
-
-        console.error("Error al confirmar pedido:", error);
-
-        return res.status(500).json({
-            message: "Error al confirmar pedido",
-            error: error.message
-        });
+        await transaction.rollback();
+        console.error("Error al actualizar estado del pedido:", error);
+        return res.status(500).json({ message: "Error al actualizar estado del pedido" });
     }
 };
 
@@ -127,42 +181,7 @@ export const confirmarPedido = async (req, res) => {
 // =========================
 
 export const rechazarPedido = async (req, res) => {
-    try {
-
-        const { id } = req.params;
-
-        const pedido = await Pedido.findByPk(id);
-
-        if (!pedido) {
-            return res.status(404).json({
-                message: "Pedido no encontrado"
-            });
-        }
-
-        const comentarioCancelacion = String(req.body?.comentarioCancelacion || "").trim();
-        if (!comentarioCancelacion) {
-            return res.status(400).json({ message: "Debes indicar el motivo del rechazo" });
-        }
-
-        pedido.estado = "rechazado";
-        pedido.comentarioCancelacion = comentarioCancelacion;
-
-        await pedido.save();
-
-        return res.status(200).json({
-            message: "Pedido rechazado correctamente",
-            pedido
-        });
-
-    } catch (error) {
-
-        console.error("Error al rechazar pedido:", error);
-
-        return res.status(500).json({
-            message: "Error al rechazar pedido",
-            error: error.message
-        });
-    }
+    return actualizarEstadoSeguro(req, res, "rechazado");
 };
 
 
@@ -171,42 +190,7 @@ export const rechazarPedido = async (req, res) => {
 // =========================
 
 export const cancelarPedido = async (req, res) => {
-    try {
-
-        const { id } = req.params;
-
-        const pedido = await Pedido.findByPk(id);
-
-        if (!pedido) {
-            return res.status(404).json({
-                message: "Pedido no encontrado"
-            });
-        }
-
-        const comentarioCancelacion = String(req.body?.comentarioCancelacion || "").trim();
-        if (!comentarioCancelacion) {
-            return res.status(400).json({ message: "Debes indicar el motivo de la cancelación" });
-        }
-
-        pedido.estado = "cancelado";
-        pedido.comentarioCancelacion = comentarioCancelacion;
-
-        await pedido.save();
-
-        return res.status(200).json({
-            message: "Pedido cancelado correctamente",
-            pedido
-        });
-
-    } catch (error) {
-
-        console.error("Error al cancelar pedido:", error);
-
-        return res.status(500).json({
-            message: "Error al cancelar pedido",
-            error: error.message
-        });
-    }
+    return actualizarEstadoSeguro(req, res, "cancelado");
 };
 
 // =========================
@@ -214,67 +198,9 @@ export const cancelarPedido = async (req, res) => {
 // =========================
 
 export const actualizarEstadoPedido = async (req, res) => {
-    try {
-
-        const { id } = req.params;
-        const { estado } = req.body;
-        const comentarioCancelacion = String(req.body?.comentarioCancelacion || "").trim();
-
-        const estadosPermitidos = [
-            "pendiente",
-            "pagado",
-            "preparando",
-            "enviado",
-            "entregado",
-            "rechazado",
-            "cancelado"
-        ];
-
-        if (!estado) {
-            return res.status(400).json({
-                message: "Debes enviar el estado"
-            });
-        }
-
-        if (!estadosPermitidos.includes(estado)) {
-            return res.status(400).json({
-                message: "Estado no válido",
-                estadosPermitidos
-            });
-        }
-
-        const pedido = await Pedido.findByPk(id);
-
-        if (!pedido) {
-            return res.status(404).json({
-                message: "Pedido no encontrado"
-            });
-        }
-
-        if (["cancelado", "rechazado"].includes(estado) && !comentarioCancelacion) {
-            return res.status(400).json({ message: `Debes indicar el motivo del ${estado === "rechazado" ? "rechazo" : "cancelación"}` });
-        }
-
-        pedido.estado = estado;
-        pedido.comentarioCancelacion = ["cancelado", "rechazado"].includes(estado) ? comentarioCancelacion : null;
-
-        await pedido.save();
-
-        return res.status(200).json({
-            message: "Estado del pedido actualizado correctamente",
-            pedido
-        });
-
-    } catch (error) {
-
-        console.error(
-            "Error al actualizar estado del pedido:",
-            error
-        );
-
-        return res.status(500).json({
-            message: "Error al actualizar estado del pedido",
-            error: error.message
-        });
+    const estadosPermitidos = ["pendiente", "pagado", "preparando", "enviado", "entregado", "rechazado", "cancelado"];
+    if (!estadosPermitidos.includes(req.body?.estado)) {
+        return res.status(400).json({ message: "Estado no válido", estadosPermitidos });
     }
+    return actualizarEstadoSeguro(req, res, req.body.estado);
 };

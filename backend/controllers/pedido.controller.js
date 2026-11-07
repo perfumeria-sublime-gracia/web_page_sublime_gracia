@@ -6,6 +6,7 @@ import { Productos } from "../models/products.model.js";
 import { obtenerPromocionesVigentes, calcularPrecioPromocional } from "../services/promocion.service.js";
 import db from "../db/connect.js";
 import { ProductoPresentacion } from "../models/productoPresentacion.model.js";
+import { InventarioMovimiento } from "../models/inventarioMovimiento.model.js";
 
 // ==========================================
 // CREAR PEDIDO
@@ -134,12 +135,12 @@ export const crearPedido = async (req, res) => {
                 : null;
 
             if (!producto || producto.activo === false || (item.presentacionId && !presentacion)) {
-                throw new Error(`El producto ${item.productId} no esta disponible`);
+                throw Object.assign(new Error(`El producto ${item.productId} no está disponible.`), { statusCode: 409 });
             }
 
             const stock = presentacion?.stock ?? producto.stock;
             if (stock !== null && item.quantity > stock) {
-                throw new Error(`No hay suficiente stock para ${producto.nombre}. Disponible: ${stock}`);
+                throw Object.assign(new Error(`No hay suficiente stock para ${producto.nombre}. Disponible: ${stock}`), { statusCode: 409 });
             }
 
             itemsCalculados.push({
@@ -182,13 +183,32 @@ export const crearPedido = async (req, res) => {
                 imagenProducto: producto.img
             }, { transaction });
 
-            if (presentacion) {
+            if (presentacion?.stock != null && Number.isInteger(Number(presentacion.stock))) {
+                const stockAnterior = Number(presentacion.stock);
                 await presentacion.decrement("stock", {
                     by: item.quantity,
                     transaction
                 });
+                await InventarioMovimiento.create({
+                    productoId: producto.id,
+                    presentacionId: presentacion.id,
+                    pedidoId: pedido.id,
+                    tipo: "venta_web",
+                    cantidad: -Number(item.quantity),
+                    stockAnterior,
+                    stockNuevo: stockAnterior - Number(item.quantity)
+                }, { transaction });
             } else if (producto.stock !== null) {
+                const stockAnterior = Number(producto.stock);
                 await producto.decrement("stock", { by: item.quantity, transaction });
+                await InventarioMovimiento.create({
+                    productoId: producto.id,
+                    pedidoId: pedido.id,
+                    tipo: "venta_web",
+                    cantidad: -Number(item.quantity),
+                    stockAnterior,
+                    stockNuevo: stockAnterior - Number(item.quantity)
+                }, { transaction });
             }
         }
 
@@ -226,7 +246,7 @@ export const crearPedido = async (req, res) => {
             error
         );
 
-        return res.status(500).json({
+        return res.status(error.statusCode || 500).json({
             message: error.message || "Error al crear pedido"
         });
     }

@@ -7,7 +7,7 @@ import { securityHeaders, rateLimit } from "../middlewares/security.middleware.j
 import { uploadsRoot } from "../utils/uploadStorage.js";
 
 const app = express()
-const originsPermitidos = ['https://sublime-gracia.netlify.app', "http://localhost:5173", "https://sublime-gracia.netlify.app/"]
+const originsPermitidos = ['https://sublime-gracia.netlify.app', "http://localhost:5173", "app://sublime-gracia"]
 
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
@@ -15,7 +15,9 @@ app.use(securityHeaders);
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300 }));
 
 app.use(cors({
-    origin: originsPermitidos,
+    origin: (origin, callback) => {
+        callback(null, origin && originsPermitidos.includes(origin) ? origin : false)
+    },
     credentials: true,
     methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Cart-Id"]

@@ -61,7 +61,14 @@ const server  = async () => {
 
         await sequelize.query(`
             ALTER TABLE "pedidos"
-            ADD COLUMN IF NOT EXISTS "comentarioCancelacion" TEXT
+            ADD COLUMN IF NOT EXISTS "comentarioCancelacion" TEXT,
+            ADD COLUMN IF NOT EXISTS "canalVenta" VARCHAR(20) NOT NULL DEFAULT 'web',
+            ADD COLUMN IF NOT EXISTS "metodoPago" VARCHAR(30)
+        `)
+
+        await sequelize.query(`
+            ALTER TABLE "reseñas"
+            ADD COLUMN IF NOT EXISTS "activa" BOOLEAN NOT NULL DEFAULT true
         `)
 
         await sequelize.query(`

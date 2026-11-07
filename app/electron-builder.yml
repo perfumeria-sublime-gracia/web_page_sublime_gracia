@@ -1,0 +1,22 @@
+appId: com.sublimegracia.admin
+productName: Sublime Gracia Admin
+artifactName: "${productName}-${version}.${ext}"
+files:
+  - dist/**
+  - electron/**
+  - package.json
+  - '!**/*.map'
+directories:
+  output: dist-electron
+win:
+  target: nsis
+  icon: build/icon.ico
+  signAndEditExecutable: true
+  signExecutable: false
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico

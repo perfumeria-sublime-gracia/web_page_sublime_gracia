@@ -6,6 +6,7 @@ import { PedidoItem } from "./pedidoItem.model.js";
 import { Promocion } from "./promocion.model.js";
 import { ProductoPresentacion } from "./productoPresentacion.model.js";
 import { Reseñas } from "./reseñas.model.js";
+import { InventarioMovimiento } from "./inventarioMovimiento.model.js";
 
 // =========================
 // CARRITO
@@ -137,4 +138,34 @@ Productos.hasMany(Reseñas, {
 Reseñas.belongsTo(Productos, {
     foreignKey: "productoId",
     as: "producto"
+});
+
+Productos.hasMany(InventarioMovimiento, {
+    foreignKey: "productoId",
+    as: "movimientosInventario"
+});
+
+InventarioMovimiento.belongsTo(Productos, {
+    foreignKey: "productoId",
+    as: "producto"
+});
+
+ProductoPresentacion.hasMany(InventarioMovimiento, {
+    foreignKey: "presentacionId",
+    as: "movimientosInventario"
+});
+
+InventarioMovimiento.belongsTo(ProductoPresentacion, {
+    foreignKey: "presentacionId",
+    as: "presentacion"
+});
+
+Pedido.hasMany(InventarioMovimiento, {
+    foreignKey: "pedidoId",
+    as: "movimientosInventario"
+});
+
+InventarioMovimiento.belongsTo(Pedido, {
+    foreignKey: "pedidoId",
+    as: "pedido"
 });

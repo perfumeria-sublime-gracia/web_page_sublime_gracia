@@ -107,6 +107,15 @@ Cuando no existe un identificador válido, la consulta devuelve un carrito vací
 | `PUT` | `/api/admin/pedidos/:id/rechazar` | Rechazar un pedido. |
 | `PUT` | `/api/admin/pedidos/:id/cancelar` | Cancelar un pedido. |
 | `PUT` | `/api/admin/pedidos/:id/estado` | Actualizar el estado de un pedido. |
+| `GET` | `/api/admin/dashboard` | Indicadores reales de ventas, pedidos, inventario y productos más vendidos. |
+| `GET` | `/api/admin/inventario/movimientos` | Historial de entradas, ajustes, ventas web/presenciales y reintegros. |
+| `POST` | `/api/admin/inventario/movimientos` | Registrar una entrada o ajuste atómico de existencias. |
+| `POST` | `/api/admin/ventas-presenciales` | Registrar venta y descontar stock en una transacción. |
+| `GET` | `/api/admin/clientes` | Clientes deduplicados a partir de pedidos web; acepta `search`. |
+| `GET` | `/api/admin/clientes/:email/pedidos` | Historial de pedidos web de un cliente. |
+| `GET` | `/api/admin/opiniones` | Listar opiniones y su estado de publicación. |
+| `PATCH` | `/api/admin/opiniones/:id/estado` | Aprobar u ocultar una opinión. |
+| `DELETE` | `/api/admin/opiniones/:id` | Eliminar una opinión. |
 | `GET` | `/api/users` | Listar usuarios. |
 | `POST` | `/api/users` | Crear un usuario. |
 | `DELETE` | `/api/users/:id` | Eliminar un usuario. |
@@ -130,6 +139,17 @@ backend valida el tipo y el contenido del archivo antes de guardarlo.
   `UPLOADS_DIR/comprobantes` y se sirven bajo `/uploads/comprobantes/...`.
   También tienen un límite de 5 MB.
 
+Las ventas presenciales se guardan en la tabla existente de pedidos con
+`canalVenta = presencial`, sus artículos y método de pago. Las ventas web ya
+descuentan existencias al crear el pedido; cambiar su estado no descuenta de
+nuevo. Al cancelar o rechazar un pedido, el backend repone el stock una sola
+vez y registra el movimiento correspondiente. Los pedidos cancelados o
+rechazados no se pueden reactivar.
+
+Al iniciar, el backend crea `inventarioMovimientos` y agrega `canalVenta`,
+`metodoPago` y `activa` a las tablas existentes `pedidos` y `reseñas`. Las
+nuevas columnas usan valores por defecto compatibles con registros existentes.
+
 En Render u otro hosting con disco efímero, los archivos locales pueden
 perderse al reiniciar o volver a desplegar el servicio. Configura un disco
 persistente para los comprobantes, o utiliza almacenamiento persistente
@@ -150,7 +170,8 @@ imagen, se conserva su URL. Si se reemplaza una imagen, se actualiza el campo
 ## Seguridad y límites
 
 - CORS permite el frontend desplegado en `https://sublime-gracia.netlify.app`
-  y el entorno local `http://localhost:5173`, con credenciales habilitadas.
+  el entorno local `http://localhost:5173` y la app instalada
+  `app://sublime-gracia`, con credenciales habilitadas.
 - Se aplica un límite general de 300 solicitudes por ventana de 15 minutos y
   un límite de 10 intentos de inicio de sesión por ventana de 15 minutos.
 - Los archivos de carga y los datos JSON tienen un límite de 5 MB y 1 MB,
@@ -164,3 +185,17 @@ Ejecuta la prueba existente de almacenamiento de imágenes con Node.js:
 ```bash
 node --test test/productImageStorage.test.js
 ```
+
+Las pruebas rutinarias se ejecutan con `npm test`. La prueba de integración
+PostgreSQL verifica una venta presencial de 2 unidades desde stock 10, la
+lectura pública del stock en 8, su movimiento, cambios de estado de pedidos
+sin descuentos repetidos y reintegro idempotente al rechazar. Para ejecutarla
+contra la base indicada por `.env`:
+
+```powershell
+$env:RUN_DB_INTEGRATION_TESTS = "1"
+node --test test/adminInventory.integration.test.js
+```
+
+La prueba ejecuta las operaciones dentro de una transacción PostgreSQL y la
+revierte al terminar para no dejar registros ni cambios de esquema de prueba.
