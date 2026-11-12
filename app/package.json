@@ -1,7 +1,7 @@
 {
   "name": "sublime-gracia-admin",
   "description": "Sublime Gracia Admin desktop application",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "author": "Sublime Gracia",
   "main": "electron/main.js",

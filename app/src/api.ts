@@ -155,9 +155,7 @@ export const savePromotion = (token: string, promotion: Omit<Promotion, 'id' | '
   const body: BodyInit = image
     ? (() => {
       const formData = new FormData();
-      for (const [key, value] of Object.entries(promotion)) {
-        formData.set(key, Array.isArray(value) ? JSON.stringify(value) : String(value ?? ''));
-      }
+      formData.set('promocion', JSON.stringify(promotion));
       formData.set('imagen', image);
       return formData;
     })()

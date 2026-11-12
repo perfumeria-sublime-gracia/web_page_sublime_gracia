@@ -67,7 +67,7 @@ $env:APP_API_URL = "https://tu-api.example.com"
 
 La aplicación reutiliza los endpoints del proyecto web actual; no crea una base de datos independiente.
 
-## Versión 1.0.3
+## Versión 1.0.4
 
 Las promociones admiten imagen publicitaria y selección automática/manual de
 productos por género y presentación. El backend debe actualizarse para agregar
@@ -77,5 +77,6 @@ iniciar). Las imágenes se validan en JPG/JPEG/PNG/WEBP y hasta 5 MB.
 Las ventas presenciales pueden guardar nombre y teléfono opcionales del cliente;
 el módulo de clientes agrupa las ventas por teléfono para mostrar su historial.
 Las ventas existentes sin cliente siguen siendo compatibles.
-El envío multipart de promociones usa ahora campos individuales y valida el
-nombre antes de guardar para evitar errores cuando se carga una imagen.
+El envío multipart de promociones conserva los tipos booleanos y arreglos en un
+campo JSON junto a la imagen. El backend también acepta ambos formatos para
+mantener compatibilidad con instaladores anteriores.

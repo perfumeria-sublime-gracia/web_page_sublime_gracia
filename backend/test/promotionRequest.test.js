@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { crearPromocion } from "../controllers/promocion.controller.js";
+import { crearPromocion, requestData } from "../controllers/promocion.controller.js";
 
 const responseRecorder = () => {
     const response = {
@@ -36,4 +36,47 @@ test("promotion creation returns a validation error when the name is missing", a
 
     assert.equal(response.statusCode, 400);
     assert.equal(response.payload.message, "Los datos de la promoción no son válidos.");
+});
+
+test("promotion multipart payload accepts the JSON object and boolean selection flag", () => {
+    const request = requestData({
+        body: {
+            promocion: JSON.stringify({
+                nombre: "Promoción de prueba",
+                tipo: "PORCENTAJE",
+                valor: 10,
+                fechaInicio: "2026-11-12",
+                fechaFin: "2026-11-30",
+                seleccionEspecifica: true,
+                productIds: [2, 4],
+                presentationIds: [8]
+            })
+        }
+    });
+
+    assert.ok(request);
+    assert.equal(request.datos.nombre, "Promoción de prueba");
+    assert.equal(request.datos.seleccionEspecifica, true);
+    assert.deepEqual(request.productIds, [2, 4]);
+    assert.deepEqual(request.presentationIds, [8]);
+});
+
+test("promotion multipart fields accept boolean strings from older desktop builds", () => {
+    const request = requestData({
+        body: {
+            nombre: "Promoción de prueba",
+            tipo: "PORCENTAJE",
+            valor: "10",
+            fechaInicio: "2026-11-12",
+            fechaFin: "2026-11-30",
+            seleccionEspecifica: "true",
+            productIds: "[2,4]",
+            presentationIds: "[8]"
+        }
+    });
+
+    assert.ok(request);
+    assert.equal(request.datos.seleccionEspecifica, true);
+    assert.deepEqual(request.productIds, [2, 4]);
+    assert.deepEqual(request.presentationIds, [8]);
 });

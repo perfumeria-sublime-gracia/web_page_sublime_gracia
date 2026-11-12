@@ -45,12 +45,13 @@ const parseIds = (value) => {
     return [...new Set(value.map(Number))];
 };
 
-const requestData = (req) => {
+export const requestData = (req) => {
     const body = parseBody(req);
     if (!body) return null;
     if (typeof body.nombre !== "string" || !body.nombre.trim()) return null;
     if ((Object.hasOwn(body, "img") && body.img !== null && typeof body.img !== "string") ||
-        (Object.hasOwn(body, "seleccionEspecifica") && typeof body.seleccionEspecifica !== "boolean")) return null;
+        (Object.hasOwn(body, "seleccionEspecifica") &&
+            ![true, false, "true", "false"].includes(body.seleccionEspecifica))) return null;
     const datos = datosPromocion(body);
     return {
         datos,
