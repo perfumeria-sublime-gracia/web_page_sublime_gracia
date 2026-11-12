@@ -8,6 +8,6 @@ export const uploadsRoot = path.resolve(
     process.env.UPLOADS_DIR || path.join(backendRoot, "uploads")
 );
 
-for (const directory of ["comprobantes", "productos"]) {
+for (const directory of ["comprobantes", "productos", "promociones"]) {
     mkdirSync(path.join(uploadsRoot, directory), { recursive: true });
 }

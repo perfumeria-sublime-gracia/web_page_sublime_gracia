@@ -54,6 +54,11 @@ test("admin POS sale updates shared stock and order transitions do not deduct it
             ALTER TABLE "reseñas"
             ADD COLUMN IF NOT EXISTS "activa" BOOLEAN NOT NULL DEFAULT true
         `, { transaction });
+        await db.query(`
+            ALTER TABLE "promocions"
+            ADD COLUMN IF NOT EXISTS "img" TEXT,
+            ADD COLUMN IF NOT EXISTS "seleccionEspecifica" BOOLEAN NOT NULL DEFAULT false
+        `, { transaction });
         await InventarioMovimiento.sync({ transaction });
 
         transaction.commit = async () => {};
@@ -379,6 +384,59 @@ test("admin POS sale updates shared stock and order transitions do not deduct it
         });
         assert.equal(customerOrdersResponse.status, 200);
         assert.equal((await customerOrdersResponse.json()).length, 1, "customer order history endpoint should return its real orders");
+
+        const freeSaleResponse = await fetch(`${baseUrl}/api/admin/ventas-presenciales`, {
+            method: "POST",
+            headers: { Authorization: auth, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                metodoPago: "Efectivo",
+                items: [{ productId: fixture.id, quantity: 1, customPrice: 4500, soldMilliliters: 15 }]
+            })
+        });
+        const freeSaleText = await freeSaleResponse.text();
+        assert.equal(freeSaleResponse.status, 201, freeSaleText);
+        const freeSale = JSON.parse(freeSaleText);
+        assert.equal(Number(freeSale.pedido.total), 4500, "free sale must use the manually entered price without catalog promotions");
+        const freeSaleItem = await PedidoItem.findOne({ where: { pedidoId: freeSale.pedido.id }, transaction });
+        assert.equal(Number(freeSaleItem.precio), 4500);
+        assert.equal(freeSaleItem.mililitros, 15, "free sale must persist the sold milliliters");
+        currentProduct = await Productos.findByPk(fixture.id, { transaction });
+        assert.equal(currentProduct.stock, 7, "free sale must deduct one complete stock unit");
+
+        const saleWithCustomer = async (nombre) => fetch(`${baseUrl}/api/admin/ventas-presenciales`, {
+            method: "POST",
+            headers: { Authorization: auth, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                metodoPago: "Efectivo",
+                cliente: { nombre, telefono: "+52 55 1234 5678" },
+                items: [{ productId: fixture.id, quantity: 1 }]
+            })
+        });
+        const firstCustomerSaleResponse = await saleWithCustomer("Cliente presencial de prueba");
+        const firstCustomerSaleText = await firstCustomerSaleResponse.text();
+        assert.equal(firstCustomerSaleResponse.status, 201, firstCustomerSaleText);
+        const firstCustomerSale = JSON.parse(firstCustomerSaleText);
+        const repeatedCustomerSaleResponse = await saleWithCustomer("Otro nombre no debe duplicar");
+        const repeatedCustomerSaleText = await repeatedCustomerSaleResponse.text();
+        assert.equal(repeatedCustomerSaleResponse.status, 201, repeatedCustomerSaleText);
+        const repeatedCustomerSale = JSON.parse(repeatedCustomerSaleText);
+        assert.equal(repeatedCustomerSale.pedido.nombre, firstCustomerSale.pedido.nombre,
+            "a repeated phone number must reuse the customer's canonical record");
+        assert.equal(repeatedCustomerSale.pedido.telefono, firstCustomerSale.pedido.telefono);
+
+        const customersResponse = await fetch(`${baseUrl}/api/admin/clientes?search=1234`, {
+            headers: { Authorization: auth }
+        });
+        assert.equal(customersResponse.status, 200);
+        const matchingCustomers = (await customersResponse.json()).filter((customer) => customer.telefono.includes("1234"));
+        assert.equal(matchingCustomers.length, 1, "repeated in-person purchases must appear as one customer");
+        const customerHistoryResponse = await fetch(`${baseUrl}/api/admin/clientes/${encodeURIComponent(matchingCustomers[0].id)}/pedidos`, {
+            headers: { Authorization: auth }
+        });
+        assert.equal(customerHistoryResponse.status, 200);
+        const customerHistory = await customerHistoryResponse.json();
+        assert.equal(customerHistory.length, 2, "the customer history must include both in-person purchases");
+        assert.ok(customerHistory.every((order) => order.canalVenta === "presencial" && order.items.length === 1));
     } finally {
         db.transaction = originalTransaction;
         globalThis.fetch = originalFetch;

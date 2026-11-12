@@ -67,6 +67,12 @@ const server  = async () => {
         `)
 
         await sequelize.query(`
+            ALTER TABLE "promocions"
+            ADD COLUMN IF NOT EXISTS "img" TEXT,
+            ADD COLUMN IF NOT EXISTS "seleccionEspecifica" BOOLEAN NOT NULL DEFAULT false
+        `)
+
+        await sequelize.query(`
             ALTER TABLE "reseñas"
             ADD COLUMN IF NOT EXISTS "activa" BOOLEAN NOT NULL DEFAULT true
         `)

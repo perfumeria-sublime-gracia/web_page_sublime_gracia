@@ -8,11 +8,19 @@ interface Anuncio {
     img: string;
 }
 
+interface PromocionPublicitaria {
+    id: number;
+    nombre: string;
+    img: string | null;
+    activa: boolean;
+}
+
 const Anuncios = () => {
 
     const API_URL = import.meta.env.VITE_API_URL;
 
     const [anuncios, setAnuncios] = useState<Anuncio[]>([]);
+    const [promociones, setPromociones] = useState<PromocionPublicitaria[]>([]);
 
     useEffect(() => {
 
@@ -36,12 +44,24 @@ const Anuncios = () => {
             }
         };
 
+        const obtenerPromociones = async () => {
+            try {
+                const response = await axios.get(`${API_URL}/promociones`);
+                setPromociones(Array.isArray(response.data) ? response.data : []);
+            } catch (error) {
+                console.error("Error al obtener las imágenes de promociones:", error);
+                setPromociones([]);
+            }
+        };
+
         obtenerAnuncios();
+        obtenerPromociones();
 
     }, []);
 
     // Si no hay anuncios, no renderizamos nada
-    if (anuncios.length === 0) {
+    const promocionesConImagen = promociones.filter((promocion) => promocion.activa && promocion.img);
+    if (anuncios.length === 0 && promocionesConImagen.length === 0) {
         return null;
     }
 
@@ -56,6 +76,14 @@ const Anuncios = () => {
                         alt="Anuncio"
                     />
 
+                </div>
+            ))}
+            {promocionesConImagen.map((promocion) => (
+                <div className="anuncio" key={`promocion-${promocion.id}`}>
+                    <img
+                        src={obtenerUrlImagen(promocion.img)}
+                        alt={`Promoción ${promocion.nombre}`}
+                    />
                 </div>
             ))}
 

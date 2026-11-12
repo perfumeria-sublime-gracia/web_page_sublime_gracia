@@ -151,10 +151,22 @@ export const savePromotion = (token: string, promotion: Omit<Promotion, 'id' | '
   id?: number;
   productIds: number[];
   presentationIds: number[];
-}) => apiFetch<Promotion>(promotion.id ? `/api/promociones/${promotion.id}` : '/api/promociones', {
-  method: promotion.id ? 'PUT' : 'POST',
-  body: JSON.stringify(promotion),
-}, token);
+}, image?: File) => {
+  const body: BodyInit = image
+    ? (() => {
+      const formData = new FormData();
+      for (const [key, value] of Object.entries(promotion)) {
+        formData.set(key, Array.isArray(value) ? JSON.stringify(value) : String(value ?? ''));
+      }
+      formData.set('imagen', image);
+      return formData;
+    })()
+    : JSON.stringify(promotion);
+  return apiFetch<Promotion>(promotion.id ? `/api/promociones/${promotion.id}` : '/api/promociones', {
+    method: promotion.id ? 'PUT' : 'POST',
+    body,
+  }, token);
+};
 export const setPromotionActive = (token: string, id: number, activa: boolean) =>
   apiFetch<Promotion>(`/api/promociones/${id}/estado`, {
     method: 'PATCH',
@@ -163,8 +175,8 @@ export const setPromotionActive = (token: string, id: number, activa: boolean) =
 
 export const fetchCustomers = (token: string, search = '') =>
   apiFetch<Customer[]>(`/api/admin/clientes${search ? `?search=${encodeURIComponent(search)}` : ''}`, {}, token);
-export const fetchCustomerOrders = (token: string, email: string) =>
-  apiFetch<Order[]>(`/api/admin/clientes/${encodeURIComponent(email)}/pedidos`, {}, token);
+export const fetchCustomerOrders = (token: string, customerId: string) =>
+  apiFetch<Order[]>(`/api/admin/clientes/${encodeURIComponent(customerId)}/pedidos`, {}, token);
 
 export const fetchReviews = (token: string) => apiFetch<Review[]>('/api/admin/opiniones', {}, token);
 export const setReviewActive = (token: string, id: number, activa: boolean) =>

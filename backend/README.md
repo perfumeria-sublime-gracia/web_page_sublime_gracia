@@ -33,6 +33,13 @@ npm start
 La API escucha en el puerto indicado por `PORT` (3000 si se usa el valor de
 `.env.example`). Al arrancar, el servidor autentica la conexión, sincroniza los
 modelos con Sequelize y aplica algunas actualizaciones de esquema necesarias.
+La actualización añade de forma idempotente las columnas de imágenes y selección
+específica a promociones. También se puede aplicar manualmente desde la raíz del
+repositorio:
+
+```powershell
+psql $env:DATA_BASE_URL -f backend\migrations\20261112-add-promotion-image-and-specific-selection.sql
+```
 
 ## Variables de entorno
 
@@ -46,7 +53,7 @@ modelos con Sequelize y aplica algunas actualizaciones de esquema necesarias.
 | `GITHUB_OWNER` | Usuario u organización propietaria del repositorio de imágenes. |
 | `GITHUB_REPO` | Repositorio público donde se guardan las imágenes. |
 | `GITHUB_BRANCH` | Rama existente del repositorio de imágenes. |
-| `GITHUB_IMAGES_DIRECTORY` | Directorio de imágenes dentro del repositorio; por defecto, `imagenes/productos`. |
+| `GITHUB_IMAGES_DIRECTORY` | Directorio de imágenes de productos y promociones dentro del repositorio; por defecto, `imagenes/productos`. |
 
 No agregues `.env` ni tokens al repositorio. La configuración de GitHub es
 opcional en desarrollo local: si las cinco variables `GITHUB_*` están vacías,

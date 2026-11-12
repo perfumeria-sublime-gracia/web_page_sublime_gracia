@@ -63,8 +63,8 @@ const validateImage = (file) => {
     return extension;
 };
 
-const saveToGitHub = async (file, extension, configuration) => {
-    const filename = `producto-${Date.now()}-${randomUUID()}${extension}`;
+const saveToGitHub = async (file, extension, configuration, prefix) => {
+    const filename = `${prefix}-${Date.now()}-${randomUUID()}${extension}`;
     const repositoryPath = `${configuration.directory}/${filename}`;
     const endpointPath = repositoryPath.split("/").map(encodeURIComponent).join("/");
     const endpoint = `https://api.github.com/repos/${encodeURIComponent(configuration.owner)}/${encodeURIComponent(configuration.repository)}/contents/${endpointPath}`;
@@ -109,15 +109,15 @@ const saveToGitHub = async (file, extension, configuration) => {
     return publicUrl;
 };
 
-export const guardarImagenProducto = async (file) => {
+const guardarImagen = async (file, directory, prefix) => {
     if (!file) throw storageError(400, "INVALID_PRODUCT_IMAGE", "Debes seleccionar una imagen.");
     const extension = validateImage(file);
     const configuration = getGitHubConfiguration();
 
-    if (configuration) return saveToGitHub(file, extension, configuration);
+    if (configuration) return saveToGitHub(file, extension, configuration, prefix);
 
-    const filename = `producto-${Date.now()}-${randomUUID()}${extension}`;
-    const destination = path.join(uploadsRoot, "productos", filename);
+    const filename = `${prefix}-${Date.now()}-${randomUUID()}${extension}`;
+    const destination = path.join(uploadsRoot, directory, filename);
     try {
         await mkdir(path.dirname(destination), { recursive: true });
         await writeFile(destination, file.buffer, { flag: "wx" });
@@ -125,5 +125,8 @@ export const guardarImagenProducto = async (file) => {
         throw storageError(503, "IMAGE_STORAGE_UNAVAILABLE", "No se pudo guardar la imagen en el almacenamiento local.");
     }
 
-    return `/uploads/productos/${filename}`;
+    return `/uploads/${directory}/${filename}`;
 };
+
+export const guardarImagenProducto = (file) => guardarImagen(file, "productos", "producto");
+export const guardarImagenPromocion = (file) => guardarImagen(file, "promociones", "promocion");

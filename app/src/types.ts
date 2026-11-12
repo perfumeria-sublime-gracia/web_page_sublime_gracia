@@ -75,6 +75,8 @@ export interface Promotion {
   activa: boolean;
   genero: 'TODOS' | 'HOMBRE' | 'MUJER';
   prioridad: number;
+  img?: string | null;
+  seleccionEspecifica?: boolean;
   productos?: Array<{ id: number; nombre: string }>;
   presentaciones?: Array<{ id: number; productoId: number; mililitros: number | null }>;
 }
@@ -87,6 +89,7 @@ export interface Customer {
   ciudad: string;
   totalCompras: number;
   pedidos: number;
+  canalVenta?: 'web' | 'presencial';
 }
 
 export interface Review {
@@ -129,5 +132,12 @@ export interface DashboardStats {
 
 export interface SaleRequest {
   metodoPago: 'Efectivo' | 'Nequi';
-  items: Array<{ productId: number; presentationId?: number; quantity: number }>;
+  cliente?: { nombre: string; telefono: string };
+  items: Array<{
+    productId: number;
+    presentationId?: number;
+    quantity: number;
+    customPrice?: number;
+    soldMilliliters?: number;
+  }>;
 }

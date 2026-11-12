@@ -32,8 +32,8 @@ const promocionAplica = (promocion, producto, presentacion) => {
 
     const productos = promocion.productos || [];
     const presentaciones = promocion.presentaciones || [];
-    const productoElegible = productos.length === 0 || productos.some((item) => item.id === producto.id);
-    const presentacionElegible = presentaciones.length === 0 || presentaciones.some((item) => item.id === presentacion?.id);
+    const productoElegible = promocion.seleccionEspecifica !== true || productos.some((item) => item.id === producto.id);
+    const presentacionElegible = presentaciones.length === 0 || !presentacion || presentaciones.some((item) => item.id === presentacion.id);
     return productoElegible && presentacionElegible;
 };
 

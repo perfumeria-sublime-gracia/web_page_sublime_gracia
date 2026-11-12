@@ -44,5 +44,14 @@ export const Promocion = db.define("promocion", {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0
+    },
+    img: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    seleccionEspecifica: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
     }
 });

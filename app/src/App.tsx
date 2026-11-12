@@ -97,7 +97,16 @@ type PromotionDraft = Omit<Promotion, 'id' | 'productos' | 'presentaciones'> & {
   productIds: number[];
   presentationIds: number[];
 };
-type CartLine = { key: string; product: Product; presentationId?: number; presentation?: Product['presentaciones'][number]; quantity: number };
+type CartLine = {
+  key: string;
+  product: Product;
+  presentationId?: number;
+  presentation?: Product['presentaciones'][number];
+  quantity: number;
+  freeSale?: boolean;
+  customPrice?: number;
+  soldMilliliters?: number;
+};
 
 const newProductDraft = (): ProductDraft => ({
   nombre: '',
@@ -122,6 +131,8 @@ const newPromotionDraft = (): PromotionDraft => ({
   activa: true,
   genero: 'TODOS',
   prioridad: 0,
+  img: null,
+  seleccionEspecifica: true,
   productIds: [],
   presentationIds: [],
 });
@@ -155,8 +166,16 @@ function App() {
   const [productDraft, setProductDraft] = useState<ProductDraft | null>(null);
   const [productImage, setProductImage] = useState<File | undefined>();
   const [promotionDraft, setPromotionDraft] = useState<PromotionDraft | null>(null);
+  const [promotionImage, setPromotionImage] = useState<File | undefined>();
+  const [promotionImagePreview, setPromotionImagePreview] = useState('');
+  const [promotionGenreFilter, setPromotionGenreFilter] = useState('all');
+  const [promotionPresentationFilter, setPromotionPresentationFilter] = useState('all');
   const [saleLines, setSaleLines] = useState<CartLine[]>([]);
   const [salePayment, setSalePayment] = useState<SaleRequest['metodoPago']>('Efectivo');
+  const [saleCustomerName, setSaleCustomerName] = useState('');
+  const [saleCustomerPhone, setSaleCustomerPhone] = useState('');
+  const [posSearch, setPosSearch] = useState('');
+  const [posGenreFilter, setPosGenreFilter] = useState('all');
   const [inventoryDraft, setInventoryDraft] = useState({
     productId: '',
     presentationId: '',
@@ -221,6 +240,10 @@ function App() {
     }, 250);
     return () => window.clearTimeout(timer);
   }, [customerSearch, token]);
+
+  useEffect(() => () => {
+    if (promotionImagePreview.startsWith('blob:')) URL.revokeObjectURL(promotionImagePreview);
+  }, [promotionImagePreview]);
 
   const runAction = async (action: () => Promise<unknown>, successMessage: string) => {
     setBusy(true);
@@ -304,9 +327,91 @@ function App() {
     event.preventDefault();
     if (!promotionDraft || !token) return;
     await runAction(async () => {
-      await savePromotion(token, promotionDraft);
+      await savePromotion(token, promotionDraft, promotionImage);
       setPromotionDraft(null);
+      setPromotionImage(undefined);
+      setPromotionImagePreview('');
     }, 'Promoción guardada y sincronizada.');
+  };
+
+  const beginEditPromotion = (promotion?: Promotion) => {
+    setPromotionImage(undefined);
+    setPromotionImagePreview('');
+    setPromotionGenreFilter('all');
+    setPromotionPresentationFilter('all');
+    setPromotionDraft(promotion ? {
+      id: promotion.id,
+      nombre: promotion.nombre,
+      tipo: promotion.tipo,
+      valor: promotion.valor,
+      fechaInicio: promotion.fechaInicio,
+      fechaFin: promotion.fechaFin,
+      activa: promotion.activa,
+      genero: promotion.genero,
+      prioridad: promotion.prioridad,
+      img: promotion.img ?? null,
+      seleccionEspecifica: promotion.seleccionEspecifica ?? false,
+      productIds: promotion.productos?.map((item) => item.id) ?? [],
+      presentationIds: promotion.presentaciones?.map((item) => item.id) ?? [],
+    } : newPromotionDraft());
+  };
+
+  const selectPromotionImage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setError('Elige una imagen JPG, JPEG, PNG o WEBP.');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('La imagen de la promoción no puede superar 5 MB.');
+      event.target.value = '';
+      return;
+    }
+    setError('');
+    setPromotionImage(file);
+    setPromotionImagePreview(URL.createObjectURL(file));
+    setPromotionDraft((current) => current && ({ ...current, img: null }));
+  };
+
+  const removePromotionImage = () => {
+    setPromotionImage(undefined);
+    setPromotionImagePreview('');
+    setPromotionDraft((current) => current && ({ ...current, img: null }));
+  };
+
+  const togglePromotionProduct = (product: Product, selected: boolean) => {
+    setPromotionDraft((current) => {
+      if (!current) return current;
+      const productPresentationIds = product.presentaciones
+        .filter((presentation) => presentation.activo && presentation.id)
+        .map((presentation) => presentation.id!);
+      const productIds = selected
+        ? [...new Set([...current.productIds, product.id])]
+        : current.productIds.filter((id) => id !== product.id);
+      const presentationIds = selected
+        ? [...new Set([...current.presentationIds, ...productPresentationIds])]
+        : current.presentationIds.filter((id) => !productPresentationIds.includes(id));
+      return { ...current, seleccionEspecifica: true, productIds, presentationIds };
+    });
+  };
+
+  const togglePromotionPresentation = (product: Product, presentationId: number, selected: boolean) => {
+    setPromotionDraft((current) => {
+      if (!current) return current;
+      const presentationIds = selected
+        ? [...new Set([...current.presentationIds, presentationId])]
+        : current.presentationIds.filter((id) => id !== presentationId);
+      const selectedForProduct = product.presentaciones.some((presentation) =>
+        presentation.id !== presentationId && presentationIds.includes(presentation.id ?? -1));
+      const productIds = selected
+        ? [...new Set([...current.productIds, product.id])]
+        : selectedForProduct
+          ? current.productIds
+          : current.productIds.filter((id) => id !== product.id);
+      return { ...current, seleccionEspecifica: true, productIds, presentationIds };
+    });
   };
 
   const updateProductPresentation = (index: number, patch: Partial<Product['presentaciones'][number]>) => {
@@ -332,8 +437,25 @@ function App() {
     });
   };
 
+  const addFreeSaleLine = (product: Product, presentation?: Product['presentaciones'][number]) => {
+    setSaleLines((current) => [...current, {
+      key: `free-${product.id}-${presentation?.id ?? 'base'}-${crypto.randomUUID()}`,
+      product,
+      presentation,
+      presentationId: presentation?.id,
+      quantity: 1,
+      freeSale: true,
+    }]);
+  };
+
   const saleSubtotal = saleLines.reduce((sum, line) =>
-    sum + Number(line.presentation?.precio ?? line.product.precio) * line.quantity, 0);
+    sum + Number(line.customPrice ?? line.presentation?.precio ?? line.product.precio) * line.quantity, 0);
+  const hasInvalidFreeSale = saleLines.some((line) => line.freeSale && (
+    !Number.isInteger(line.customPrice) || Number(line.customPrice) <= 0 ||
+    !Number.isInteger(line.soldMilliliters) || Number(line.soldMilliliters) <= 0 ||
+    (line.presentation?.mililitros != null && Number(line.soldMilliliters) > line.presentation.mililitros)
+  ));
+  const hasPartialSaleCustomer = Boolean(saleCustomerName.trim()) !== Boolean(saleCustomerPhone.trim());
 
   const submitSale = async () => {
     if (!token || !saleLines.length) return;
@@ -343,14 +465,20 @@ function App() {
     try {
       const result = await registerSale(token, {
         metodoPago: salePayment,
+        ...(saleCustomerName.trim() && saleCustomerPhone.trim()
+          ? { cliente: { nombre: saleCustomerName.trim(), telefono: saleCustomerPhone.trim() } }
+          : {}),
         items: saleLines.map((line) => ({
           productId: line.product.id,
           ...(line.presentationId ? { presentationId: line.presentationId } : {}),
           quantity: line.quantity,
+          ...(line.freeSale ? { customPrice: line.customPrice, soldMilliliters: line.soldMilliliters } : {}),
         })),
       });
       setMessage(`Venta ${result.pedido.id} registrada. Total final: ${formatCurrency(result.pedido.total)}.`);
       setSaleLines([]);
+      setSaleCustomerName('');
+      setSaleCustomerPhone('');
       await refreshData(token);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo registrar la venta.');
@@ -383,12 +511,39 @@ function App() {
       && (productGenreFilter === 'all' || product.genero === productGenreFilter)
       && (productCategoryFilter === 'all' || product.categoria === productCategoryFilter);
   }), [productCategoryFilter, productGenreFilter, productSearch, products]);
+  const posProducts = useMemo(() => products.filter((product) => {
+    const search = posSearch.trim().toLocaleLowerCase();
+    return product.activo
+      && (!search || product.nombre.trim().toLocaleLowerCase().startsWith(search))
+      && (posGenreFilter === 'all' || product.genero === posGenreFilter);
+  }), [posGenreFilter, posSearch, products]);
+  const promotionFilterProducts = useMemo(() => products.filter((product) => {
+    if (!product.activo || (promotionGenreFilter !== 'all' &&
+      String(product.genero).toUpperCase() !== promotionGenreFilter)) return false;
+    const presentations = product.presentaciones.filter((presentation) => presentation.activo && presentation.id);
+    if (promotionPresentationFilter === 'all') return true;
+    return presentations.some((presentation) => presentation.mililitros === Number(promotionPresentationFilter));
+  }), [products, promotionGenreFilter, promotionPresentationFilter]);
+  const applyPromotionFilters = () => {
+    if (!promotionDraft) return;
+    const selectedProductIds = promotionFilterProducts.map((product) => product.id);
+    const selectedPresentationIds = promotionFilterProducts.flatMap((product) => product.presentaciones
+      .filter((presentation) => presentation.activo && presentation.id &&
+        (promotionPresentationFilter === 'all' || presentation.mililitros === Number(promotionPresentationFilter)))
+      .map((presentation) => presentation.id!));
+    setPromotionDraft((current) => current && ({
+      ...current,
+      seleccionEspecifica: true,
+      productIds: [...new Set([...current.productIds, ...selectedProductIds])],
+      presentationIds: [...new Set([...current.presentationIds, ...selectedPresentationIds])],
+    }));
+  };
 
   const showCustomerOrders = async (customer: Customer) => {
     if (!token) return;
     setSelectedCustomer(customer);
     try {
-      setCustomerOrders(await fetchCustomerOrders(token, customer.email));
+      setCustomerOrders(await fetchCustomerOrders(token, customer.id));
       setError('');
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo consultar el historial del cliente.');
@@ -581,37 +736,74 @@ function App() {
     <div className="section-header"><div><p className="eyebrow">Caja</p><h2>Ventas presenciales</h2></div></div>
     <div className="pos-layout">
       <div className="pos-list">
-        {products.filter((product) => product.activo).map((product) => (
+        <div className="pos-filters">
+          <label className="pos-search"><Search size={16} /><input type="search" value={posSearch} placeholder="Buscar colonia por nombre"
+            aria-label="Buscar colonia por nombre" onChange={(event) => setPosSearch(event.target.value)} /></label>
+          <select aria-label="Filtrar por género" value={posGenreFilter} onChange={(event) => setPosGenreFilter(event.target.value)}>
+            <option value="all">Todos los géneros</option><option value="HOMBRE">Hombre</option><option value="MUJER">Mujer</option>
+          </select>
+        </div>
+        {posProducts.map((product) => (
           <div className="pos-product-card" key={product.id}>
             {product.img && <img className="pos-image" src={imageUrl(product.img)} alt="" />}
-            <strong>{product.nombre}</strong><small>{product.marca}</small>
+            <strong>{product.nombre}</strong><small>{product.marca} · {product.genero}</small>
             {product.presentaciones.filter((presentation) => presentation.activo).length
               ? product.presentaciones.filter((presentation) => presentation.activo).map((presentation) => (
-                <button type="button" key={presentation.id} className="pos-product" disabled={(presentation.stock ?? product.stock ?? 0) <= 0}
-                  onClick={() => addSaleLine(product, presentation)}>
-                  <span>{presentation.mililitros ? `${presentation.mililitros} ml` : 'Estándar'} · {presentation.stock ?? product.stock ?? 0} disponibles</span>
-                  <small>{formatCurrency(presentation.precio)} · Agregar</small>
-                </button>
+                <div className="pos-presentation" key={presentation.id}>
+                  <button type="button" className="pos-product" disabled={(presentation.stock ?? product.stock ?? 0) <= 0}
+                    onClick={() => addSaleLine(product, presentation)}>
+                    <span>{presentation.mililitros ? `${presentation.mililitros} ml` : 'Estándar'} · {presentation.stock ?? product.stock ?? 0} disponibles</span>
+                    <small>{formatCurrency(presentation.precio)} · Agregar</small>
+                  </button>
+                  <button type="button" className="btn btn-small pos-free-sale" disabled={(presentation.stock ?? product.stock ?? 0) <= 0}
+                    onClick={() => addFreeSaleLine(product, presentation)}>Venta libre</button>
+                </div>
               ))
-              : <button type="button" className="pos-product" disabled={(product.stock ?? 0) <= 0} onClick={() => addSaleLine(product)}>
-                <span>{product.stock ?? 0} disponibles</span><small>{formatCurrency(product.precio)} · Agregar</small>
-              </button>}
+              : <div className="pos-presentation">
+                <button type="button" className="pos-product" disabled={(product.stock ?? 0) <= 0} onClick={() => addSaleLine(product)}>
+                  <span>{product.stock ?? 0} disponibles</span><small>{formatCurrency(product.precio)} · Agregar</small>
+                </button>
+                <button type="button" className="btn btn-small pos-free-sale" disabled={(product.stock ?? 0) <= 0}
+                  onClick={() => addFreeSaleLine(product)}>Venta libre</button>
+              </div>}
           </div>
         ))}
-        {!products.length && <p className="empty-state">No hay productos conectados al catálogo.</p>}
+        {!posProducts.length && <p className="empty-state">{posSearch || posGenreFilter !== 'all'
+          ? 'No hay colonias que coincidan con la búsqueda y el género.'
+          : 'No hay productos conectados al catálogo.'}</p>}
       </div>
       <div className="sale-summary">
         <h3>Resumen de venta</h3>
+        <div className="sale-customer-fields">
+          <label><span>Nombre del cliente (opcional)</span><input value={saleCustomerName} maxLength={255}
+            onChange={(event) => setSaleCustomerName(event.target.value)} placeholder="Nombre completo" /></label>
+          <label><span>Teléfono del cliente (opcional)</span><input type="tel" value={saleCustomerPhone} maxLength={40}
+            onChange={(event) => setSaleCustomerPhone(event.target.value)} placeholder="Número de contacto" /></label>
+          {hasPartialSaleCustomer && <small className="field-error">Ingresa el nombre y el teléfono, o deja ambos vacíos.</small>}
+        </div>
         {!saleLines.length && <p className="empty-state">Agrega perfumes para iniciar la venta.</p>}
         {saleLines.map((line) => <div className="sale-row sale-row-edit" key={line.key}>
-          <span>{line.product.nombre} {line.presentation?.mililitros ? `${line.presentation.mililitros} ml` : ''}<small>{formatCurrency(line.presentation?.precio ?? line.product.precio)} c/u</small></span>
-          <input aria-label={`Cantidad de ${line.product.nombre}`} type="number" min="1" value={line.quantity} onChange={(event) => setSaleLines((current) => current.map((item) => item.key === line.key ? { ...item, quantity: Math.max(1, Number(event.target.value)) } : item))} />
+          <span>{line.product.nombre} {line.freeSale
+            ? <small>Venta libre · {line.soldMilliliters ? `${line.soldMilliliters} ml` : 'ml sin indicar'}</small>
+            : line.presentation?.mililitros ? `${line.presentation.mililitros} ml` : ''}
+            {!line.freeSale && <small>{formatCurrency(line.presentation?.precio ?? line.product.precio)} c/u</small>}
+          </span>
+          {line.freeSale
+            ? <div className="free-sale-fields">
+              <label><span>Precio de esta venta</span><input aria-label={`Precio manual de ${line.product.nombre}`} type="number" min="1" step="1"
+                value={line.customPrice ?? ''} onChange={(event) => setSaleLines((current) => current.map((item) => item.key === line.key
+                  ? { ...item, customPrice: event.target.value === '' ? undefined : Number(event.target.value) } : item))} /></label>
+              <label><span>ml vendidos</span><input aria-label={`Mililitros vendidos de ${line.product.nombre}`} type="number" min="1" step="1"
+                max={line.presentation?.mililitros ?? undefined} value={line.soldMilliliters ?? ''} onChange={(event) => setSaleLines((current) => current.map((item) => item.key === line.key
+                  ? { ...item, soldMilliliters: event.target.value === '' ? undefined : Number(event.target.value) } : item))} /></label>
+            </div>
+            : <input aria-label={`Cantidad de ${line.product.nombre}`} type="number" min="1" value={line.quantity} onChange={(event) => setSaleLines((current) => current.map((item) => item.key === line.key ? { ...item, quantity: Math.max(1, Number(event.target.value)) } : item))} />}
           <button type="button" className="icon-button" aria-label="Quitar producto" onClick={() => setSaleLines((current) => current.filter((item) => item.key !== line.key))}><X size={15} /></button>
         </div>)}
         <label><span>Método de pago</span><select value={salePayment} onChange={(event) => setSalePayment(event.target.value as SaleRequest['metodoPago'])}><option>Efectivo</option><option>Nequi</option></select></label>
-        <div className="sale-total"><span>Subtotal antes de promoción</span><strong>{formatCurrency(saleSubtotal)}</strong></div>
-        <p className="helper-text">El backend calcula y aplica la promoción vigente al registrar la venta.</p>
-        <button type="button" className="btn btn-primary wide" disabled={busy || !saleLines.length} onClick={() => {
+        <div className="sale-total"><span>Subtotal antes de promociones</span><strong>{formatCurrency(saleSubtotal)}</strong></div>
+        <p className="helper-text">El backend aplica promociones a precios de catálogo. Las ventas libres usan el precio manual y descuentan una presentación completa; los ml vendidos quedan en el detalle.</p>
+        <button type="button" className="btn btn-primary wide" disabled={busy || !saleLines.length || hasInvalidFreeSale || hasPartialSaleCustomer} onClick={() => {
           if (window.confirm('¿Confirmar la venta y descontar el inventario compartido?')) void submitSale();
         }}><CircleDollarSign size={16} /> Registrar venta</button>
       </div>
@@ -620,22 +812,19 @@ function App() {
 
   const renderPromotions = () => <section className="panel">
     <div className="section-header"><div><p className="eyebrow">Marketing</p><h2>Promociones</h2></div>
-      <button type="button" className="btn btn-primary" onClick={() => setPromotionDraft(newPromotionDraft())}><Plus size={16} /> Nueva promoción</button>
+      <button type="button" className="btn btn-primary" onClick={() => beginEditPromotion()}><Plus size={16} /> Nueva promoción</button>
     </div>
     <div className="cards-grid">
       {promotions.map((promo) => <div className="promo-card" key={promo.id}>
+        {promo.img && <img className="promo-image" src={imageUrl(promo.img)} alt={`Imagen de ${promo.nombre}`} />}
         <div className="promo-head"><strong>{promo.nombre}</strong><span className={`status ${promo.activa ? 'status-success' : 'status-cancelled'}`}>{promo.activa ? 'Activa' : 'Inactiva'}</span></div>
         <p>{promo.tipo}{promo.tipo === 'PORCENTAJE' ? ` · ${promo.valor}%` : promo.tipo === 'MONTO' ? ` · ${formatCurrency(promo.valor)}` : ''}</p>
         <small>{promo.fechaInicio} — {promo.fechaFin} · Género: {promo.genero}</small>
-        <small>{promo.productos?.length ? `Productos: ${promo.productos.map((item) => item.nombre).join(', ')}` : 'Aplica a todos los productos'}</small>
+        <small>{promo.seleccionEspecifica
+          ? `${promo.productos?.length ?? 0} productos seleccionados`
+          : 'Aplica a todos los productos'}</small>
         <div className="table-actions">
-          <button type="button" className="btn btn-small" onClick={() => setPromotionDraft({
-            id: promo.id, nombre: promo.nombre, tipo: promo.tipo, valor: promo.valor,
-            fechaInicio: promo.fechaInicio, fechaFin: promo.fechaFin, activa: promo.activa,
-            genero: promo.genero, prioridad: promo.prioridad,
-            productIds: promo.productos?.map((item) => item.id) ?? [],
-            presentationIds: promo.presentaciones?.map((item) => item.id) ?? [],
-          })}>Editar</button>
+          <button type="button" className="btn btn-small" onClick={() => beginEditPromotion(promo)}>Editar</button>
           <button type="button" className="btn btn-small" disabled={busy} onClick={() => token && void runAction(
             () => setPromotionActive(token, promo.id, !promo.activa),
             promo.activa ? 'Promoción desactivada.' : 'Promoción activada.',
@@ -647,23 +836,24 @@ function App() {
   </section>;
 
   const renderCustomers = () => <section className="panel">
-    <div className="section-header"><div><p className="eyebrow">Clientes web</p><h2>Base de clientes</h2></div></div>
+    <div className="section-header"><div><p className="eyebrow">Clientes web y presenciales</p><h2>Base de clientes</h2></div></div>
     <div className="toolbar"><div className="search-field"><Search size={16} /><input type="search" value={customerSearch} onChange={(event) => setCustomerSearch(event.target.value)} placeholder="Buscar nombre, correo o teléfono" /></div></div>
     <div className="table-wrapper"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Ciudad</th><th>Pedidos</th><th>Total compras</th><th></th></tr></thead>
       <tbody>{customers.map((customer) => <tr key={customer.id}>
-        <td>{customer.nombre}</td><td>{customer.email}</td><td>{customer.telefono}</td><td>{customer.ciudad}</td>
+        <td>{customer.nombre}<small>{customer.canalVenta === 'presencial' ? 'Cliente presencial' : 'Cliente web'}</small></td>
+        <td>{customer.email.includes('@sublimegracia.local') ? '—' : customer.email}</td><td>{customer.telefono}</td><td>{customer.ciudad}</td>
         <td>{customer.pedidos}</td><td>{formatCurrency(customer.totalCompras)}</td>
         <td><button type="button" className="btn btn-small" onClick={() => void showCustomerOrders(customer)}>Historial</button></td>
       </tr>)}
-      {!customers.length && <tr><td colSpan={7} className="empty-state">No hay clientes web con pedidos.</td></tr>}</tbody>
+      {!customers.length && <tr><td colSpan={7} className="empty-state">No hay clientes con ventas registradas.</td></tr>}</tbody>
     </table></div>
     {selectedCustomer && <div className="mini-panel customer-history">
-      <div className="section-header"><div><h3>Pedidos de {selectedCustomer.nombre}</h3><small>{selectedCustomer.email}</small></div>
+      <div className="section-header"><div><h3>Compras de {selectedCustomer.nombre}</h3><small>{selectedCustomer.telefono}{selectedCustomer.email.includes('@sublimegracia.local') ? '' : ` · ${selectedCustomer.email}`}</small></div>
         <button type="button" className="icon-button" aria-label="Cerrar historial" onClick={() => { setSelectedCustomer(null); setCustomerOrders(null); }}><X size={17} /></button>
       </div>
       {customerOrders?.map((order) => <div className="history-order" key={order.id}>
-        <strong>#{order.id.slice(0, 8)} · {order.estado} · {formatCurrency(order.total)}</strong><small>{formatDate(order.createdAt)}</small>
-        <ul>{order.items?.map((item) => <li key={item.id}>{item.nombreProducto} × {item.cantidad}</li>)}</ul>
+        <strong>#{order.id.slice(0, 8)} · {order.canalVenta === 'presencial' ? 'Presencial' : 'Web'} · {order.estado} · {formatCurrency(order.total)}</strong><small>{formatDate(order.createdAt)}</small>
+        <ul>{order.items?.map((item) => <li key={item.id}>{item.nombreProducto} {item.mililitros ? `· ${item.mililitros} ml ` : ''}× {item.cantidad} · {formatCurrency(item.precio * item.cantidad)}</li>)}</ul>
       </div>)}
       {customerOrders && !customerOrders.length && <p className="empty-state">Este cliente no tiene pedidos.</p>}
     </div>}
@@ -807,42 +997,81 @@ function App() {
     </div></div>}
 
     {promotionDraft && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => {
-      if (event.target === event.currentTarget && !busy) setPromotionDraft(null);
+      if (event.target === event.currentTarget && !busy) {
+        setPromotionDraft(null);
+        setPromotionImage(undefined);
+        setPromotionImagePreview('');
+      }
     }}><div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="promotion-modal-title">
       <div className="modal-heading"><div><p className="eyebrow">Promociones</p><h2 id="promotion-modal-title">{promotionDraft.id ? 'Editar promoción' : 'Nueva promoción'}</h2></div>
-        <button type="button" className="icon-button" aria-label="Cerrar" onClick={() => setPromotionDraft(null)}><X size={18} /></button></div>
+      <button type="button" className="icon-button" aria-label="Cerrar" onClick={() => { setPromotionDraft(null); setPromotionImage(undefined); setPromotionImagePreview(''); }}><X size={18} /></button></div>
       <form className="form-grid" onSubmit={(event) => void handleSavePromotion(event)}>
         <label className="form-full"><span>Nombre</span><input required value={promotionDraft.nombre} onChange={(event) => setPromotionDraft({ ...promotionDraft, nombre: event.target.value })} /></label>
-        <label><span>Tipo</span><select value={promotionDraft.tipo} onChange={(event) => setPromotionDraft({ ...promotionDraft, tipo: event.target.value as PromotionDraft['tipo'] })}>{['PORCENTAJE', 'MONTO', '2X1', '3X2'].map((type) => <option key={type}>{type}</option>)}</select></label>
+      <div className="form-full promotion-image-field">
+        <label><span>Imagen publicitaria (JPG, PNG o WEBP, máximo 5 MB)</span>
+          <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={selectPromotionImage} />
+        </label>
+        {(promotionImagePreview || promotionDraft.img) && <div className="promotion-image-preview">
+          <img src={promotionImagePreview || imageUrl(promotionDraft.img ?? undefined)} alt="Vista previa de la imagen de la promoción" />
+          <button type="button" className="btn btn-small" onClick={removePromotionImage}>Quitar imagen</button>
+        </div>}
+      </div>
+      <label><span>Tipo</span><select value={promotionDraft.tipo} onChange={(event) => setPromotionDraft({ ...promotionDraft, tipo: event.target.value as PromotionDraft['tipo'] })}>{['PORCENTAJE', 'MONTO', '2X1', '3X2'].map((type) => <option key={type}>{type}</option>)}</select></label>
         <label><span>Valor (porcentaje o monto)</span><input type="number" min="0" step="1" value={promotionDraft.valor} onChange={(event) => setPromotionDraft({ ...promotionDraft, valor: Number(event.target.value) })} /></label>
         <label><span>Inicio</span><input type="date" required value={promotionDraft.fechaInicio} onChange={(event) => setPromotionDraft({ ...promotionDraft, fechaInicio: event.target.value })} /></label>
         <label><span>Fin</span><input type="date" required value={promotionDraft.fechaFin} onChange={(event) => setPromotionDraft({ ...promotionDraft, fechaFin: event.target.value })} /></label>
         <label><span>Género</span><select value={promotionDraft.genero} onChange={(event) => setPromotionDraft({ ...promotionDraft, genero: event.target.value as PromotionDraft['genero'] })}><option>TODOS</option><option>HOMBRE</option><option>MUJER</option></select></label>
         <label><span>Prioridad</span><input type="number" min="0" step="1" value={promotionDraft.prioridad} onChange={(event) => setPromotionDraft({ ...promotionDraft, prioridad: Number(event.target.value) })} /></label>
-        <div className="form-full product-checklist"><span>Productos aplicables (sin selección: todos)</span>
+        <div className="form-full promotion-selection">
+          <div className="promotion-filter-row">
+            <label><span>Filtrar por género</span><select value={promotionGenreFilter} onChange={(event) => setPromotionGenreFilter(event.target.value)}>
+              <option value="all">Todos</option><option value="HOMBRE">Hombre</option><option value="MUJER">Mujer</option><option value="UNISEX">Unisex</option>
+            </select></label>
+            <label><span>Filtrar por presentación</span><select value={promotionPresentationFilter} onChange={(event) => setPromotionPresentationFilter(event.target.value)}>
+              <option value="all">Todas las presentaciones</option><option value="30">30 ml</option><option value="50">50 ml</option><option value="100">100 ml</option>
+            </select></label>
+            <button type="button" className="btn btn-small" onClick={applyPromotionFilters}>Agregar resultados ({promotionFilterProducts.length})</button>
+            <button type="button" className="btn btn-small btn-ghost" onClick={() => setPromotionDraft({
+              ...promotionDraft, seleccionEspecifica: true, productIds: [], presentationIds: [],
+            })}>Limpiar selección</button>
+          </div>
+          <p className="helper-text">
+            Seleccionados: {promotionDraft.productIds.length} productos · {promotionDraft.presentationIds.length} presentaciones.
+            {!promotionDraft.seleccionEspecifica && ' Esta promoción heredada se aplica a todo el catálogo hasta que selecciones productos.'}
+          </p>
+          <div className="promotion-filter-results">
+            <strong>Resultados del filtro ({promotionFilterProducts.length})</strong>
+            <small>{promotionFilterProducts.map((product) => product.nombre).join(' · ') || 'No hay productos para esos filtros.'}</small>
+          </div>
+          <div className="selected-promotion-products">
+            <strong>Productos incluidos</strong>
+            {products.filter((product) => promotionDraft.productIds.includes(product.id)).map((product) => (
+              <span key={product.id}>{product.nombre}</span>
+            ))}
+            {!promotionDraft.productIds.length && <small>{promotionDraft.seleccionEspecifica ? 'No hay productos seleccionados; la promoción no se aplicará.' : 'Todos los productos por configuración actual.'}</small>}
+          </div>
+          <div className="form-full product-checklist"><span>Productos aplicables (selección individual y automática)</span>
           {products.map((product) => <label key={product.id} className="checkbox-line">
-            <input type="checkbox" checked={promotionDraft.productIds.includes(product.id)} onChange={(event) => setPromotionDraft({
-              ...promotionDraft,
-              productIds: event.target.checked ? [...promotionDraft.productIds, product.id] : promotionDraft.productIds.filter((id) => id !== product.id),
-            })} /><span>{product.nombre}</span>
+            <input type="checkbox" checked={promotionDraft.productIds.includes(product.id)} onChange={(event) => togglePromotionProduct(product, event.target.checked)} /><span>{product.nombre} · {product.genero}</span>
           </label>)}
           <div className="form-full presentation-checklist"><strong>Presentaciones aplicables</strong>
-            <small>Si no marcas presentaciones, se aplican todas las presentaciones de los productos seleccionados.</small>
+            <small>Marca las presentaciones que también deben recibir la promoción. Las selecciones de producto y presentación se combinan.</small>
             {products.flatMap((product) => product.presentaciones.filter((presentation) => presentation.activo && presentation.id).map((presentation) => (
               <label key={presentation.id} className="checkbox-line">
-                <input type="checkbox" checked={promotionDraft.presentationIds.includes(presentation.id!)} onChange={(event) => setPromotionDraft({
-                  ...promotionDraft,
-                  presentationIds: event.target.checked
-                    ? [...promotionDraft.presentationIds, presentation.id!]
-                    : promotionDraft.presentationIds.filter((id) => id !== presentation.id),
-                })} />
+                <input type="checkbox" checked={promotionDraft.presentationIds.includes(presentation.id!)}
+                  onChange={(event) => togglePromotionPresentation(product, presentation.id!, event.target.checked)} />
                 <span>{product.nombre} · {presentation.mililitros ? `${presentation.mililitros} ml` : 'Estándar'}</span>
               </label>
             )))}
           </div>
+          </div>
         </div>
         <label className="checkbox-line"><input type="checkbox" checked={promotionDraft.activa} onChange={(event) => setPromotionDraft({ ...promotionDraft, activa: event.target.checked })} /><span>Activa</span></label>
-        <div className="form-actions form-full"><button type="button" className="btn btn-ghost" onClick={() => setPromotionDraft(null)}>Cancelar</button><button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Guardando…' : 'Guardar promoción'}</button></div>
+        <div className="form-actions form-full"><button type="button" className="btn btn-ghost" onClick={() => {
+          setPromotionDraft(null);
+          setPromotionImage(undefined);
+          setPromotionImagePreview('');
+        }}>Cancelar</button><button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Guardando…' : 'Guardar promoción'}</button></div>
       </form>
     </div></div>}
   </div>;

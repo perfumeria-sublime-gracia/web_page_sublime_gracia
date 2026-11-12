@@ -2,6 +2,7 @@ import { Promocion } from "../models/promocion.model.js";
 import { Productos } from "../models/products.model.js";
 import { ProductoPresentacion } from "../models/productoPresentacion.model.js";
 import { validarPromocion } from "../services/promocion.service.js";
+import { guardarImagenPromocion } from "../services/productImageStorage.js";
 import db from "../db/connect.js";
 
 const datosPromocion = (body) => ({
@@ -10,10 +11,53 @@ const datosPromocion = (body) => ({
     valor: Number(body.valor || 0),
     fechaInicio: body.fechaInicio,
     fechaFin: body.fechaFin,
-    activa: body.activa !== false,
+    activa: body.activa === undefined ? true : body.activa === true || body.activa === "true",
     genero: body.genero || "TODOS",
-    prioridad: Number(body.prioridad || 0)
+    prioridad: Number(body.prioridad || 0),
+    ...(Object.hasOwn(body, "img") ? { img: body.img || null } : {}),
+    ...(Object.hasOwn(body, "seleccionEspecifica")
+        ? { seleccionEspecifica: body.seleccionEspecifica === true || body.seleccionEspecifica === "true" }
+        : {})
 });
+
+const parseBody = (req) => {
+    const input = req.body;
+    if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+    if (typeof input.promocion !== "string") return input;
+    try {
+        const body = JSON.parse(input.promocion);
+        return body && typeof body === "object" && !Array.isArray(body) ? body : null;
+    } catch {
+        return null;
+    }
+};
+
+const parseIds = (value) => {
+    if (typeof value === "string") {
+        try {
+            value = JSON.parse(value);
+        } catch {
+            return null;
+        }
+    }
+    if (value === undefined) return undefined;
+    if (!Array.isArray(value) || value.some((id) => !Number.isInteger(Number(id)) || Number(id) <= 0)) return null;
+    return [...new Set(value.map(Number))];
+};
+
+const requestData = (req) => {
+    const body = parseBody(req);
+    if (!body) return null;
+    if (typeof body.nombre !== "string" || !body.nombre.trim()) return null;
+    if ((Object.hasOwn(body, "img") && body.img !== null && typeof body.img !== "string") ||
+        (Object.hasOwn(body, "seleccionEspecifica") && typeof body.seleccionEspecifica !== "boolean")) return null;
+    const datos = datosPromocion(body);
+    return {
+        datos,
+        productIds: parseIds(body.productIds),
+        presentationIds: parseIds(body.presentationIds)
+    };
+};
 
 const asignarProductos = async (promocion, productIds, transaction) => {
     if (!Array.isArray(productIds)) return;
@@ -44,14 +88,19 @@ export const obtenerPromocion = async (req, res) => {
 };
 
 export const crearPromocion = async (req, res) => {
-    const datos = datosPromocion(req.body);
+    const request = requestData(req);
+    if (!request || request.productIds === null || request.presentationIds === null) {
+        return res.status(400).json({ message: "Los datos de la promoción no son válidos." });
+    }
+    const { datos, productIds, presentationIds } = request;
     const error = validarPromocion(datos);
     if (error) return res.status(400).json({ message: error });
+    if (req.file) datos.img = await guardarImagenPromocion(req.file);
     const transaction = await db.transaction();
     try {
         const promocion = await Promocion.create(datos, { transaction });
-        await asignarProductos(promocion, req.body.productIds, transaction);
-        await asignarPresentaciones(promocion, req.body.presentationIds, transaction);
+        await asignarProductos(promocion, productIds, transaction);
+        await asignarPresentaciones(promocion, presentationIds, transaction);
         const result = await Promocion.findByPk(promocion.id, { include: ["productos", "presentaciones"], transaction });
         await transaction.commit();
         res.status(201).json(result);
@@ -62,7 +111,11 @@ export const crearPromocion = async (req, res) => {
 };
 
 export const actualizarPromocion = async (req, res) => {
-    const datos = datosPromocion(req.body);
+    const request = requestData(req);
+    if (!request || request.productIds === null || request.presentationIds === null) {
+        return res.status(400).json({ message: "Los datos de la promoción no son válidos." });
+    }
+    const { datos, productIds, presentationIds } = request;
     const error = validarPromocion(datos);
     if (error) return res.status(400).json({ message: error });
     const transaction = await db.transaction();
@@ -72,9 +125,10 @@ export const actualizarPromocion = async (req, res) => {
             await transaction.rollback();
             return res.status(404).json({ message: "Promocion no encontrada" });
         }
+        if (req.file) datos.img = await guardarImagenPromocion(req.file);
         await promocion.update(datos, { transaction });
-        await asignarProductos(promocion, req.body.productIds, transaction);
-        await asignarPresentaciones(promocion, req.body.presentationIds, transaction);
+        await asignarProductos(promocion, productIds, transaction);
+        await asignarPresentaciones(promocion, presentationIds, transaction);
         const result = await Promocion.findByPk(promocion.id, { include: ["productos", "presentaciones"], transaction });
         await transaction.commit();
         res.json(result);

@@ -33,6 +33,7 @@ const findStockTarget = async ({ productId, presentationId }, transaction, lock 
 };
 
 const recordMovement = (data, transaction) => InventarioMovimiento.create(data, { transaction });
+const normalizedPhone = (value) => String(value ?? "").replace(/\D/g, "");
 
 export const listarMovimientosInventario = async (req, res) => {
     const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
@@ -110,8 +111,17 @@ export const registrarMovimientoInventario = async (req, res) => {
 export const registrarVentaPresencial = async (req, res) => {
     const items = req.body.items;
     const metodoPago = req.body.metodoPago;
+    const cliente = req.body.cliente;
     if (!Array.isArray(items) || items.length === 0 || !["Efectivo", "Nequi"].includes(metodoPago)) {
         return res.status(400).json({ message: "Agrega productos y selecciona Efectivo o Nequi." });
+    }
+    if (cliente !== undefined && (
+        !cliente || typeof cliente.nombre !== "string" || !cliente.nombre.trim() ||
+        typeof cliente.telefono !== "string" || !cliente.telefono.trim() ||
+        cliente.nombre.trim().length > 255 || cliente.telefono.trim().length > 40 ||
+        normalizedPhone(cliente.telefono).length < 7
+    )) {
+        return res.status(400).json({ message: "El nombre y teléfono del cliente deben ser válidos." });
     }
 
     const idsVistos = new Set();
@@ -119,10 +129,16 @@ export const registrarVentaPresencial = async (req, res) => {
         const productId = Number(item.productId);
         const presentationId = item.presentationId ? Number(item.presentationId) : null;
         const quantity = Number(item.quantity);
+        const customPrice = item.customPrice === undefined ? null : Number(item.customPrice);
+        const soldMilliliters = item.soldMilliliters === undefined ? null : Number(item.soldMilliliters);
         const key = `${productId}:${presentationId ?? "base"}`;
         if (!Number.isInteger(productId) || productId <= 0 ||
             (presentationId !== null && (!Number.isInteger(presentationId) || presentationId <= 0)) ||
-            !Number.isInteger(quantity) || quantity <= 0 || idsVistos.has(key)) {
+            !Number.isInteger(quantity) || quantity <= 0 ||
+            (customPrice !== null && (!Number.isInteger(customPrice) || customPrice <= 0)) ||
+            (soldMilliliters !== null && (!Number.isInteger(soldMilliliters) || soldMilliliters <= 0)) ||
+            ((customPrice === null) !== (soldMilliliters === null)) ||
+            idsVistos.has(key)) {
             return res.status(400).json({ message: "Los productos, presentaciones y cantidades de la venta no son válidos." });
         }
         idsVistos.add(key);
@@ -137,18 +153,29 @@ export const registrarVentaPresencial = async (req, res) => {
             const productId = Number(item.productId);
             const presentationId = item.presentationId ? Number(item.presentationId) : null;
             const quantity = Number(item.quantity);
+            const customPrice = item.customPrice === undefined ? null : Number(item.customPrice);
+            const soldMilliliters = item.soldMilliliters === undefined ? null : Number(item.soldMilliliters);
             const target = await findStockTarget({ productId, presentationId }, transaction);
             if (target.error || target.producto.activo === false) {
                 throw Object.assign(new Error(target.error || "El producto no está activo."), { statusCode: 404 });
+            }
+            if (customPrice !== null && target.presentacion?.mililitros != null &&
+                soldMilliliters > Number(target.presentacion.mililitros)) {
+                throw Object.assign(new Error(`Los ml vendidos superan el contenido de ${target.producto.nombre}.`), { statusCode: 400 });
             }
             if (!Number.isInteger(target.stock) || target.stock < quantity) {
                 throw Object.assign(new Error(`Stock insuficiente para ${target.producto.nombre}. Disponible: ${target.stock ?? 0}.`), { statusCode: 409 });
             }
 
-            const calculo = calcularPrecioPromocional({
-                ...target.producto.toJSON(),
-                presentacion: target.presentacion?.toJSON() ?? null
-            }, quantity, promociones);
+            const calculo = customPrice !== null
+                ? {
+                    precioFinal: customPrice,
+                    totalFinal: customPrice * quantity
+                }
+                : calcularPrecioPromocional({
+                    ...target.producto.toJSON(),
+                    presentacion: target.presentacion?.toJSON() ?? null
+                }, quantity, promociones);
             const stockNuevo = target.stock - quantity;
             const model = target.presentacion?.stock != null && Number.isInteger(Number(target.presentacion.stock))
                 ? target.presentacion
@@ -160,16 +187,41 @@ export const registrarVentaPresencial = async (req, res) => {
                 stockPresentationId: model === target.presentacion ? target.presentacion.id : null,
                 quantity,
                 calculo,
+                soldMilliliters,
                 stockAnterior: target.stock,
                 stockNuevo
             });
         }
 
         const total = ventaItems.reduce((sum, item) => sum + item.calculo.totalFinal, 0);
-        const pedido = await Pedido.create({
+        let datosCliente = {
             nombre: "Venta presencial",
             telefono: "N/A",
-            email: "venta-presencial@sublimegracia.local",
+            email: "venta-presencial@sublimegracia.local"
+        };
+        if (cliente) {
+            const phone = normalizedPhone(cliente.telefono);
+            const pedidosConTelefono = await Pedido.findAll({
+                where: { canalVenta: { [Op.in]: ["web", "presencial"] } },
+                attributes: ["nombre", "telefono", "email"],
+                order: [["createdAt", "ASC"]],
+                transaction
+            });
+            const clienteExistente = pedidosConTelefono.find((pedido) => normalizedPhone(pedido.telefono) === phone);
+            datosCliente = clienteExistente
+                ? {
+                    nombre: clienteExistente.nombre,
+                    telefono: clienteExistente.telefono,
+                    email: clienteExistente.email
+                }
+                : {
+                    nombre: cliente.nombre.trim(),
+                    telefono: cliente.telefono.trim(),
+                    email: `presencial-${phone}@sublimegracia.local`
+                };
+        }
+        const pedido = await Pedido.create({
+            ...datosCliente,
             direccion: "Venta en tienda física",
             ciudad: "Local",
             total,
@@ -183,7 +235,7 @@ export const registrarVentaPresencial = async (req, res) => {
                 pedidoId: pedido.id,
                 productId: item.producto.id,
                 presentacionId: item.stockPresentationId,
-                mililitros: item.presentacion?.mililitros ?? null,
+                mililitros: item.soldMilliliters ?? item.presentacion?.mililitros ?? null,
                 cantidad: item.quantity,
                 precio: item.calculo.precioFinal,
                 nombreProducto: item.producto.nombre,
@@ -210,46 +262,57 @@ export const registrarVentaPresencial = async (req, res) => {
 
 export const listarClientes = async (req, res) => {
     const search = String(req.query.search ?? "").trim();
-    const where = search ? {
-        [Op.or]: [
-            { nombre: { [Op.iLike]: `%${search}%` } },
-            { email: { [Op.iLike]: `%${search}%` } },
-            { telefono: { [Op.iLike]: `%${search}%` } }
-        ]
-    } : {};
     const pedidos = await Pedido.findAll({
-        where: { ...where, canalVenta: "web" },
-        attributes: ["nombre", "email", "telefono", "ciudad", "total", "estado", "createdAt"],
+        where: { canalVenta: { [Op.in]: ["web", "presencial"] } },
+        attributes: ["nombre", "email", "telefono", "ciudad", "total", "estado", "createdAt", "canalVenta"],
         order: [["createdAt", "DESC"]]
     });
     const customers = new Map();
     for (const order of pedidos) {
-        const key = order.email.toLowerCase();
+        const phone = normalizedPhone(order.telefono);
+        if (order.canalVenta === "presencial" && phone.length < 7) continue;
+        const key = phone.length >= 7 ? `telefono:${phone}` : `email:${order.email.toLowerCase()}`;
         const customer = customers.get(key) || {
-            id: key,
+            id: phone.length >= 7 ? key : order.email.toLowerCase(),
             nombre: order.nombre,
             email: order.email,
             telefono: order.telefono,
             ciudad: order.ciudad,
             totalCompras: 0,
-            pedidos: 0
+            pedidos: 0,
+            canalVenta: phone.length >= 7 && order.canalVenta === "presencial" ? "presencial" : "web"
         };
+        if (phone.length >= 7 && order.canalVenta === "web") customer.canalVenta = "web";
         if (!["cancelado", "rechazado", "pendiente"].includes(order.estado)) {
             customer.totalCompras += Number(order.total);
             customer.pedidos += 1;
         }
         customers.set(key, customer);
     }
-    res.json([...customers.values()]);
+    const normalizedSearch = search.toLocaleLowerCase();
+    res.json([...customers.values()].filter((customer) =>
+        !normalizedSearch || [customer.nombre, customer.email, customer.telefono, customer.ciudad]
+            .some((value) => String(value ?? "").toLocaleLowerCase().includes(normalizedSearch))
+    ));
 };
 
 export const obtenerPedidosCliente = async (req, res) => {
+    const customerId = req.params.email;
+    if (customerId.startsWith("telefono:")) {
+        const phone = normalizedPhone(customerId.slice("telefono:".length));
+        const pedidos = await Pedido.findAll({
+            where: { canalVenta: { [Op.in]: ["web", "presencial"] } },
+            include: includeOrderItems,
+            order: [["createdAt", "DESC"]]
+        });
+        return res.json(pedidos.filter((pedido) => normalizedPhone(pedido.telefono) === phone));
+    }
     const pedidos = await Pedido.findAll({
-        where: { email: { [Op.iLike]: req.params.email }, canalVenta: "web" },
+        where: { email: { [Op.iLike]: customerId }, canalVenta: { [Op.in]: ["web", "presencial"] } },
         include: includeOrderItems,
         order: [["createdAt", "DESC"]]
     });
-    res.json(pedidos);
+    return res.json(pedidos);
 };
 
 export const obtenerDashboard = async (_req, res) => {

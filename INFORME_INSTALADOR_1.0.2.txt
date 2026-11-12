@@ -1,0 +1,112 @@
+INFORME DE ENTREGA — SUBLIME GRACIA ADMIN 1.0.2
+Fecha: 12/11/2026
+
+INSTALADOR
+- app/dist-electron/Sublime Gracia Admin-1.0.2.exe
+- Tamaño: 103,359,071 bytes
+- SHA-256: A3581CA785F921E1EC09F4F810B62C4A22634937334AE77EFD3591CDD58A8617
+- Archivo de actualización: app/dist-electron/Sublime Gracia Admin-1.0.2.exe.blockmap
+
+1. ARCHIVOS MODIFICADOS
+- app/README.md
+- app/package.json
+- app/package-lock.json
+- app/src/App.tsx
+- app/src/api.ts
+- app/src/styles.css
+- app/src/types.ts
+- backend/README.md
+- backend/controllers/adminOperations.controller.js
+- backend/controllers/promocion.controller.js
+- backend/models/promocion.model.js
+- backend/routes/api/promociones.js
+- backend/services/productImageStorage.js
+- backend/services/promocion.service.js
+- backend/src/server.js
+- backend/test/adminInventory.integration.test.js
+- backend/test/productImageStorage.test.js
+- backend/utils/uploadStorage.js
+- frontend/sublime_gracia/src/page/anuncio.tsx
+
+2. ARCHIVOS NUEVOS
+- backend/migrations/20261112-add-promotion-image-and-specific-selection.sql
+- backend/test/promotionSelection.test.js
+- INFORME_INSTALADOR_1.0.2.txt
+
+3. FUNCIONALIDADES IMPLEMENTADAS
+- Promociones: selección JPG/JPEG, PNG o WEBP de hasta 5 MB, vista previa,
+  reemplazo/eliminación y almacenamiento mediante el servicio de imágenes
+  existente. La imagen se conserva en la promoción y la página Anuncio existente
+  de la tienda muestra las imágenes de promociones activas.
+- Selección de promoción: filtros combinables por género (hombre, mujer,
+  unisex, todos) y presentación (30, 50, 100 ml, todas). Se muestran resultados,
+  conteos y productos incluidos; se pueden combinar filtros con selección
+  manual, quitar productos y limpiar la selección. Las promociones nuevas
+  quedan limitadas a la selección; las promociones anteriores sin selección
+  conservan su comportamiento global.
+- Ventas presenciales: nombre y teléfono opcionales, requeridos en pareja.
+  Los pedidos existentes se usan para reutilizar clientes por teléfono y el
+  módulo de clientes agrupa sus ventas para consultar fechas, artículos,
+  cantidades y totales. Las ventas sin cliente siguen aceptándose.
+- Se conservan los cambios locales preexistentes en el módulo de ventas
+  presenciales incluidos al generar este instalador.
+
+4. CAMBIOS EN BACKEND
+- Se amplió el almacenamiento de imágenes compartido para guardar imágenes de
+  promociones en GitHub configurado o en la carpeta local de cargas.
+- POST/PUT /api/promociones aceptan opcionalmente multipart/form-data con
+  "promocion" (JSON) e "imagen"; también aceptan JSON existente. La respuesta
+  incluye img y seleccionEspecifica.
+- POST /api/admin/ventas-presenciales acepta opcionalmente
+  cliente: { nombre, telefono }.
+- GET /api/admin/clientes incluye clientes de ventas presenciales agrupados por
+  teléfono; GET /api/admin/clientes/:email/pedidos conserva compatibilidad y
+  también resuelve los identificadores por teléfono.
+- No se añadieron endpoints nuevos ni una tabla de clientes: los registros de
+  clientes se derivan de los pedidos, como en la arquitectura existente.
+
+5. CAMBIOS EN POSTGRESQL
+- Se agregan las columnas nullable "img" y "seleccionEspecifica" a
+  "promocions". Los registros existentes conservan comportamiento global con
+  seleccionEspecifica = false.
+- No se eliminan tablas, columnas ni registros. No se ejecutó una migración
+  contra la base de datos configurada en este entorno.
+
+6. MIGRACIÓN
+- El servidor aplica las columnas de forma idempotente al iniciar.
+- Alternativamente, desde PowerShell y la raíz del repositorio:
+  psql $env:DATA_BASE_URL -f backend\migrations\20261112-add-promotion-image-and-specific-selection.sql
+- Desplegar/reiniciar el backend actualizado antes de usar las funciones del
+  instalador que requieren estos cambios.
+
+7. ENDPOINTS
+- Sin rutas nuevas. Se amplían POST/PUT /api/promociones y
+  POST /api/admin/ventas-presenciales; GET de clientes e historial ahora
+  incluyen ventas presenciales.
+
+8. PRUEBAS Y RESULTADOS
+- app: npm run build — aprobado (TypeScript y Vite).
+- frontend/sublime_gracia: npm run build — aprobado.
+- backend: npm test — 9 aprobadas, 0 fallidas, 1 integración omitida.
+- Se omitió la prueba de integración PostgreSQL porque requiere
+  RUN_DB_INTEGRATION_TESTS=1 y una base configurada; por ello no se validó aquí
+  una ejecución real de ventas contra PostgreSQL.
+- app: npm run dist — aprobado; se generaron el instalador y el blockmap.
+- git diff --check — aprobado.
+
+9. PROBLEMAS / LIMITACIONES
+- El backend debe desplegarse para que el instalador pueda usar las funciones
+  nuevas contra el servicio remoto.
+- La persistencia en GitHub para despliegues requiere configurar las variables
+  GITHUB_* existentes. Sin ellas se utiliza almacenamiento local del backend,
+  sujeto a la persistencia que ofrezca ese servidor.
+- No se probó la instalación interactiva ni se validó visualmente la tienda con
+  datos del servicio desplegado.
+
+10. MEJORAS PENDIENTES
+- Ejecutar la prueba de integración en una base PostgreSQL de pruebas y validar
+  creación/reutilización de clientes y carga de imágenes de extremo a extremo.
+- Desplegar el backend y confirmar que la imagen aparece en Anuncio en el sitio
+  publicado.
+- Probar el instalador en un equipo Windows limpio y comprobar el flujo visual
+  completo de creación/edición de promociones.

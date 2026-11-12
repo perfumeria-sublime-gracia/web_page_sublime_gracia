@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
 import test, { afterEach, beforeEach } from "node:test";
-import { guardarImagenProducto } from "../services/productImageStorage.js";
+import { guardarImagenProducto, guardarImagenPromocion } from "../services/productImageStorage.js";
 import { uploadsRoot } from "../utils/uploadStorage.js";
 
 const githubKeys = [
@@ -92,6 +92,17 @@ test("uses local storage when GitHub settings are absent", async () => {
     const destination = path.join(uploadsRoot, "productos", filename);
     try {
         assert.match(url, /^\/uploads\/productos\/producto-/);
+    } finally {
+        await unlink(destination);
+    }
+});
+
+test("stores promotional images in their persistent upload directory", async () => {
+    const url = await guardarImagenPromocion(imageFile);
+    const filename = path.basename(url);
+    const destination = path.join(uploadsRoot, "promociones", filename);
+    try {
+        assert.match(url, /^\/uploads\/promociones\/promocion-/);
     } finally {
         await unlink(destination);
     }
