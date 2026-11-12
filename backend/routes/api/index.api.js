@@ -29,10 +29,10 @@ router.use('/api', reseñas)
 router.use('/api/auth', login)
 router.use('/api', promociones)
 router.use('/api', productos)
+router.use('/api', temporadas)
 router.use('/api/', admin)
 router.use('/api/', users)
 router.use('/api/', adminPedidoRoutes)
 router.use('/api/', adminOperations)
-router.use('/api', temporadas)
 
 export default router
