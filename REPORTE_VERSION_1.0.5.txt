@@ -86,6 +86,10 @@ Informe:
 - El archivo interno app.asar contiene el renderer compilado, Electron y
   package.json; no contiene node_modules ni codigo de pruebas.
 - Se verifico que los instaladores 1.0.0 a 1.0.4 permanecen en dist-electron.
+- Tras el reporte inicial se comprobo en produccion que la consulta publica
+  devuelve 401 "Token requerido". Se corrigio el orden del router en el codigo
+  local para montar temporadas antes de la proteccion global de admin y se
+  agrego una prueba de regresion.
 
 5. PROBLEMAS ENCONTRADOS Y SOLUCIONES
 -------------------------------------
@@ -100,6 +104,9 @@ Informe:
 - La prueba de integracion PostgreSQL fue omitida por el runner: requiere
   RUN_DB_INTEGRATION_TESTS=1 y una base configurada. Por tanto, las operaciones
   de persistencia, activacion y desactivacion no se probaron contra PostgreSQL.
+- La version de backend desplegada en Render aun responde 401 para la consulta
+  publica. El arreglo del router esta local y debe desplegarse para que el tema
+  empiece a reflejarse en la tienda de produccion.
 - Vite mostro una advertencia no bloqueante sobre la configuracion CommonJS/
   ESM existente. Las compilaciones finalizaron correctamente.
 
