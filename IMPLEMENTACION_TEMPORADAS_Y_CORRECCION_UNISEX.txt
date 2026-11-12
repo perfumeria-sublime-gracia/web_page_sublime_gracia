@@ -1,0 +1,56 @@
+IMPLEMENTACION DE TEMPORADAS Y CORRECCION DE IMAGEN UNISEX
+=========================================================
+
+ESTADO
+------
+Implementacion terminada en el codigo local.
+
+TEMPORADAS Y APARIENCIA
+----------------------
+- Se agrego persistencia PostgreSQL para temporadas, con fechas de inicio y fin,
+  paleta de siete colores, decoracion, habilitacion y descripcion.
+- Se agregaron rutas publicas y administrativas. Las rutas administrativas
+  requieren autenticacion y rol de administrador.
+- El panel permite crear, editar, eliminar, activar y desactivar temporadas,
+  configurar sus fechas y colores, elegir decoraciones y revisar una vista
+  previa que no altera la tienda.
+- Se incluyeron plantillas para San Valentin, Dia de la Mujer, Dia de la Madre,
+  Dia del Padre, Amor y Amistad, Halloween, Black Friday, Navidad, Ano Nuevo,
+  Cyber Monday y Primavera, ademas de temporadas personalizadas.
+- Las fechas ingresadas se interpretan y muestran en la zona horaria
+  America/Bogota.
+- Las temporadas habilitadas no pueden cruzarse. Las escrituras se serializan
+  en PostgreSQL para evitar activaciones simultaneas incompatibles.
+- El servidor deshabilita temporadas vencidas al iniciar y las revisa cada
+  minuto. La tienda consulta el tema publico cada minuto y restaura la paleta
+  original al quedar sin una temporada vigente.
+- Las decoraciones respetan la preferencia del navegador para reducir
+  movimiento.
+- Se documentaron las rutas y la migracion manual en backend/README.md.
+
+IMAGEN UNISEX
+-------------
+La tarjeta Unisex usaba una ruta relativa que Vite no incluia en produccion.
+Ahora importa estaticamente frontend/sublime_gracia/uploads/Buongiorno.jpg.
+El build publico emitio el recurso:
+frontend/sublime_gracia/dist/assets/Buongiorno-VnSzAF7l.jpg
+
+VALIDACION
+----------
+- npm test --prefix backend: 16 pruebas aprobadas, 0 fallidas y 1 omitida.
+- La prueba omitida requiere RUN_DB_INTEGRATION_TESTS=1 y una base PostgreSQL
+  configurada; no se verifico la migracion contra una base de produccion.
+- npm run build --prefix app: correcto, incluyendo TypeScript.
+- npm run build --prefix frontend\sublime_gracia: correcto, incluyendo
+  TypeScript; el asset Unisex fue incluido con nombre hash.
+- npm run lint -- src\App.tsx src\page\SeasonThemeProvider.tsx src\main.tsx
+  ejecutado desde frontend\sublime_gracia: correcto.
+- node --check para los modulos del servidor y temporadas: correcto.
+
+ALCANCE DE DESPLIEGUE
+---------------------
+No se aplico la migracion en la base de datos de produccion ni se desplego la
+tienda o el backend. El servidor aplica la creacion idempotente de la tabla al
+iniciar; alternativamente, puede ejecutarse desde la raiz:
+
+psql $env:DATA_BASE_URL -f backend\migrations\20261120-create-seasons.sql

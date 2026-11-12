@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import "../style/anuncio.css";
-import { obtenerUrlImagen } from "../utils/imageUrl";
+import { marcarImagenNoDisponible, obtenerUrlImagen } from "../utils/imageUrl";
 
 interface Anuncio {
     id: number;
@@ -15,24 +15,30 @@ interface PromocionPublicitaria {
     activa: boolean;
 }
 
-const Anuncios = () => {
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "").trim()
+    .replace(/\/api\/?$/i, "")
+    .replace(/\/+$/, "");
+const API_URL = `${API_BASE_URL}/api`;
 
-    const API_URL = import.meta.env.VITE_API_URL;
+const Anuncios = () => {
 
     const [anuncios, setAnuncios] = useState<Anuncio[]>([]);
     const [promociones, setPromociones] = useState<PromocionPublicitaria[]>([]);
 
     useEffect(() => {
+        let cancelado = false;
 
         const obtenerAnuncios = async () => {
 
             try {
 
                 const response = await axios.get(
-                    `${API_URL}/api/anuncio`
+                    `${API_URL}/anuncio`
                 );
 
-                setAnuncios(response.data);
+                if (!cancelado) {
+                    setAnuncios(Array.isArray(response.data) ? response.data : []);
+                }
 
             } catch (error) {
 
@@ -40,23 +46,28 @@ const Anuncios = () => {
 
                 // Si no hay anuncios o ocurre algún error,
                 // no mostramos nada.
-                setAnuncios([]);
+                if (!cancelado) setAnuncios([]);
             }
         };
 
         const obtenerPromociones = async () => {
             try {
                 const response = await axios.get(`${API_URL}/promociones`);
-                setPromociones(Array.isArray(response.data) ? response.data : []);
+                if (!cancelado) {
+                    setPromociones(Array.isArray(response.data) ? response.data : []);
+                }
             } catch (error) {
                 console.error("Error al obtener las imágenes de promociones:", error);
-                setPromociones([]);
+                if (!cancelado) setPromociones([]);
             }
         };
 
         obtenerAnuncios();
         obtenerPromociones();
 
+        return () => {
+            cancelado = true;
+        };
     }, []);
 
     // Si no hay anuncios, no renderizamos nada
@@ -74,6 +85,7 @@ const Anuncios = () => {
                     <img
                         src={obtenerUrlImagen(anuncio.img)}
                         alt="Anuncio"
+                        onError={marcarImagenNoDisponible}
                     />
 
                 </div>
@@ -83,6 +95,7 @@ const Anuncios = () => {
                     <img
                         src={obtenerUrlImagen(promocion.img)}
                         alt={`Promoción ${promocion.nombre}`}
+                        onError={marcarImagenNoDisponible}
                     />
                 </div>
             ))}

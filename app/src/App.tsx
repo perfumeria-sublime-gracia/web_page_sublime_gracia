@@ -2,6 +2,7 @@ import {
   ArrowRightLeft,
   Boxes,
   BriefcaseBusiness,
+  CalendarDays,
   ChevronRight,
   CircleDollarSign,
   CreditCard,
@@ -17,6 +18,7 @@ import {
   ShoppingCart,
   Sparkles,
   Star,
+  Trash2,
   UserRound,
   Users,
   Warehouse,
@@ -26,6 +28,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   deleteProduct,
   deleteReview,
+  deleteSeason,
   fetchCustomerOrders,
   fetchCustomers,
   fetchDashboard,
@@ -34,6 +37,7 @@ import {
   fetchProducts,
   fetchPromotions,
   fetchReviews,
+  fetchSeasons,
   loginAdmin,
   registerInventoryMovement,
   registerSale,
@@ -41,9 +45,11 @@ import {
   saveApiBaseUrl,
   saveProduct,
   savePromotion,
+  saveSeason,
   setProductActive,
   setPromotionActive,
   setReviewActive,
+  setSeasonActive,
   updateOrderState,
 } from './api';
 import type {
@@ -56,6 +62,9 @@ import type {
   Product,
   Promotion,
   Review,
+  Season,
+  SeasonColors,
+  SeasonDecoration,
   SaleRequest,
 } from './types';
 
@@ -66,6 +75,7 @@ const navigation = [
   { key: 'orders', label: 'Pedidos', icon: BriefcaseBusiness },
   { key: 'pos', label: 'Ventas presenciales', icon: ShoppingCart },
   { key: 'promotions', label: 'Promociones', icon: Percent },
+  { key: 'seasons', label: 'Temporadas y apariencia', icon: CalendarDays },
   { key: 'customers', label: 'Clientes', icon: Users },
   { key: 'reviews', label: 'Opiniones', icon: Star },
   { key: 'administration', label: 'Administración', icon: ShieldCheck },
@@ -90,6 +100,7 @@ const emptyStats: DashboardStats = {
   ventasUltimosSieteDias: [],
   productosMasVendidos: [],
 };
+type SeasonDraft = Omit<Season, 'id' | 'estado'> & { id?: number };
 
 type ProductDraft = Omit<Product, 'id'> & { id?: number };
 type PromotionDraft = Omit<Promotion, 'id' | 'productos' | 'presentaciones'> & {
@@ -137,6 +148,66 @@ const newPromotionDraft = (): PromotionDraft => ({
   presentationIds: [],
 });
 
+const seasonColorLabels: Array<{ key: keyof SeasonColors; label: string }> = [
+  { key: 'principal', label: 'Principal' },
+  { key: 'secundario', label: 'Secundario' },
+  { key: 'acento', label: 'Acento' },
+  { key: 'fondo', label: 'Fondo' },
+  { key: 'texto', label: 'Texto' },
+  { key: 'boton', label: 'Botón' },
+  { key: 'decorativo', label: 'Decorativo' },
+];
+
+const seasonTemplates: Array<{
+  nombre: string;
+  tema: string;
+  decoracion: SeasonDecoration;
+  colores: SeasonColors;
+}> = [
+  { nombre: 'San Valentín', tema: 'Amor romántico', decoracion: 'hearts', colores: { principal: '#9f3153', secundario: '#f5d9df', acento: '#cf6b83', fondo: '#fff7f7', texto: '#39232b', boton: '#9f3153', decorativo: '#e8a4b2' } },
+  { nombre: 'Día de la Mujer', tema: 'Celebración de la mujer', decoracion: 'floral', colores: { principal: '#76586f', secundario: '#eee4ec', acento: '#a7869f', fondo: '#fcf8fb', texto: '#302630', boton: '#6f5268', decorativo: '#d5bfd1' } },
+  { nombre: 'Día de la Madre', tema: 'Homenaje a mamá', decoracion: 'floral', colores: { principal: '#a64c63', secundario: '#f3d9df', acento: '#d3919e', fondo: '#fff8f8', texto: '#3e2a2d', boton: '#a64c63', decorativo: '#e7b6be' } },
+  { nombre: 'Día del Padre', tema: 'Celebración del padre', decoracion: 'stars', colores: { principal: '#34546c', secundario: '#d8e4eb', acento: '#7e9cae', fondo: '#f6f9fa', texto: '#26333a', boton: '#34546c', decorativo: '#a8bfcb' } },
+  { nombre: 'Amor y Amistad', tema: 'Amor y amistad', decoracion: 'hearts', colores: { principal: '#a5414c', secundario: '#f2d8d8', acento: '#d17b78', fondo: '#fff8f5', texto: '#3e2928', boton: '#a5414c', decorativo: '#e9b2a7' } },
+  { nombre: 'Halloween', tema: 'Halloween', decoracion: 'pumpkins', colores: { principal: '#8a4a25', secundario: '#f0d7c3', acento: '#d1813c', fondo: '#fbf5ef', texto: '#30251f', boton: '#8a4a25', decorativo: '#b97137' } },
+  { nombre: 'Black Friday', tema: 'Black Friday', decoracion: 'stars', colores: { principal: '#262323', secundario: '#ded8cf', acento: '#c4a366', fondo: '#f7f5f1', texto: '#211e1a', boton: '#262323', decorativo: '#c4a366' } },
+  { nombre: 'Navidad', tema: 'Navidad', decoracion: 'snowflakes', colores: { principal: '#315747', secundario: '#e5eee7', acento: '#a84a45', fondo: '#f7faf6', texto: '#27342c', boton: '#315747', decorativo: '#c8a86c' } },
+  { nombre: 'Año Nuevo', tema: 'Año Nuevo', decoracion: 'confetti', colores: { principal: '#69543a', secundario: '#eee5d3', acento: '#b99661', fondo: '#fbf8f1', texto: '#30281d', boton: '#69543a', decorativo: '#d2b979' } },
+  { nombre: 'Cyber Monday', tema: 'Cyber Monday', decoracion: 'confetti', colores: { principal: '#38556f', secundario: '#e1e9ef', acento: '#7894a8', fondo: '#f7f9fb', texto: '#26323a', boton: '#34516a', decorativo: '#a9bdca' } },
+  { nombre: 'Primavera', tema: 'Primavera', decoracion: 'leaves', colores: { principal: '#557448', secundario: '#e5eddc', acento: '#b1a65d', fondo: '#f9fbf4', texto: '#2d3527', boton: '#557448', decorativo: '#9daf79' } },
+];
+
+const bogotaInputValue = (value: string | Date) => {
+  const date = value instanceof Date ? value : new Date(value);
+  return new Date(date.getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0, 16);
+};
+
+const newSeasonDraft = (): SeasonDraft => {
+  const start = new Date();
+  start.setSeconds(0, 0);
+  const end = new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
+  return {
+    nombre: 'Temporada personalizada',
+    descripcion: '',
+    tema: 'Personalizada',
+    colores: { principal: '#302015', secundario: '#f3e8d8', acento: '#b99661', fondo: '#faf6ef', texto: '#29221c', boton: '#21160f', decorativo: '#d8bd91' },
+    decoracion: 'none',
+    intensidad: 1,
+    fechaInicio: bogotaInputValue(start),
+    fechaFin: bogotaInputValue(end),
+    habilitada: false,
+  };
+};
+
+const formatBogotaDate = (value: string) => new Date(value).toLocaleString('es-CO', {
+  timeZone: 'America/Bogota',
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 function App() {
   const [selectedSection, setSelectedSection] = useState<MenuKey>('dashboard');
   const [token, setToken] = useState(() => sessionStorage.getItem('sg-admin-token') ?? '');
@@ -153,6 +224,10 @@ function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [seasonDraft, setSeasonDraft] = useState<SeasonDraft | null>(null);
+  const [seasonTemplate, setSeasonTemplate] = useState('');
+  const [seasonPreview, setSeasonPreview] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [movements, setMovements] = useState<InventoryMovement[]>([]);
@@ -217,6 +292,10 @@ function App() {
     }
   }, []);
 
+  const refreshSeasons = useCallback(async (authToken: string) => {
+    setSeasons(await fetchSeasons(authToken));
+  }, []);
+
   useEffect(() => {
     void resolveBaseUrl().then(setApiBaseUrl);
   }, []);
@@ -227,6 +306,28 @@ function App() {
     const timer = window.setInterval(() => void refreshData(token), 60_000);
     return () => window.clearInterval(timer);
   }, [refreshData, token]);
+
+  useEffect(() => {
+    if (!token) {
+      setSeasons([]);
+      return undefined;
+    }
+    let active = true;
+    const loadSeasons = async () => {
+      try {
+        const values = await fetchSeasons(token);
+        if (active) setSeasons(values);
+      } catch (requestError) {
+        if (active) setError(requestError instanceof Error ? requestError.message : 'No se pudieron cargar las temporadas.');
+      }
+    };
+    void loadSeasons();
+    const timer = window.setInterval(() => void loadSeasons(), 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [token]);
 
   useEffect(() => {
     if (!token) return undefined;
@@ -288,6 +389,8 @@ function App() {
     setProducts([]);
     setOrders([]);
     setPromotions([]);
+    setSeasons([]);
+    setSeasonDraft(null);
     setCustomers([]);
     setReviews([]);
     setMovements([]);
@@ -332,6 +435,70 @@ function App() {
       setPromotionImage(undefined);
       setPromotionImagePreview('');
     }, 'Promoción guardada y sincronizada.');
+  };
+
+  const handleSaveSeason = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!seasonDraft || !token) return;
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const saved = await saveSeason(token, seasonDraft);
+      setSeasonDraft({
+        ...saved,
+        descripcion: saved.descripcion ?? '',
+        fechaInicio: bogotaInputValue(saved.fechaInicio),
+        fechaFin: bogotaInputValue(saved.fechaFin),
+      });
+      setMessage('Temporada guardada. La programación se aplica automáticamente según las fechas de Bogotá.');
+      try {
+        await refreshSeasons(token);
+      } catch (refreshError) {
+        setError(`La temporada se guardó, pero no se pudo actualizar la lista: ${refreshError instanceof Error ? refreshError.message : 'error de conexión.'}`);
+      }
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'No se pudo guardar la temporada.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runSeasonAction = async (action: () => Promise<unknown>, successMessage: string) => {
+    if (!token) return;
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      await action();
+      setMessage(successMessage);
+      try {
+        await refreshSeasons(token);
+      } catch (refreshError) {
+        setError(`El cambio se guardó, pero no se pudo actualizar la lista: ${refreshError instanceof Error ? refreshError.message : 'error de conexión.'}`);
+      }
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'La operación de temporada no pudo completarse.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const beginEditSeason = (season?: Season) => {
+    if (!season) {
+      setSeasonDraft(newSeasonDraft());
+      setSeasonTemplate('');
+      setSeasonPreview(false);
+      return;
+    }
+    setSeasonDraft({
+      ...season,
+      descripcion: season.descripcion ?? '',
+      fechaInicio: bogotaInputValue(season.fechaInicio),
+      fechaFin: bogotaInputValue(season.fechaFin),
+    });
+    setSeasonTemplate(seasonTemplates.some((template) => template.nombre === season.nombre) ? season.nombre : '');
+    setSeasonPreview(false);
   };
 
   const beginEditPromotion = (promotion?: Promotion) => {
@@ -835,6 +1002,83 @@ function App() {
     </div>
   </section>;
 
+  const renderSeasons = () => <section className="panel">
+    <div className="section-header"><div><p className="eyebrow">Identidad visual programada</p><h2>Temporadas y apariencia</h2></div>
+      <button type="button" className="btn btn-primary" onClick={() => beginEditSeason()}><Plus size={16} /> Nueva temporada</button>
+    </div>
+    <p className="helper-text">Programa una apariencia para toda la tienda. Las fechas se interpretan en la zona horaria de Bogotá; una temporada habilitada comienza y termina automáticamente.</p>
+    {seasonDraft && <form className="season-editor" onSubmit={(event) => void handleSaveSeason(event)}>
+      <div className="section-header"><div><p className="eyebrow">{seasonDraft.id ? 'Editar programación' : 'Nueva configuración'}</p><h3>{seasonDraft.nombre}</h3></div>
+        <button type="button" className="btn btn-ghost" onClick={() => setSeasonDraft(null)}>Cerrar editor</button>
+      </div>
+      <div className="season-fields">
+        <label><span>Plantilla de temporada</span><select value={seasonTemplate} onChange={(event) => {
+          const value = event.target.value;
+          setSeasonTemplate(value);
+          const template = seasonTemplates.find((item) => item.nombre === value);
+          setSeasonDraft((current) => current ? {
+            ...current,
+            nombre: template?.nombre ?? 'Temporada personalizada',
+            tema: template?.tema ?? 'Personalizada',
+            decoracion: template?.decoracion ?? 'none',
+            colores: template?.colores ?? current.colores,
+          } : current);
+        }}>
+          <option value="">Personalizada</option>
+          {seasonTemplates.map((template) => <option key={template.nombre} value={template.nombre}>{template.nombre}</option>)}
+        </select></label>
+        <label><span>Nombre</span><input required maxLength={120} value={seasonDraft.nombre} onChange={(event) => setSeasonDraft({ ...seasonDraft, nombre: event.target.value })} /></label>
+        <label><span>Temática</span><input required maxLength={80} value={seasonDraft.tema} onChange={(event) => setSeasonDraft({ ...seasonDraft, tema: event.target.value })} /></label>
+        <label className="season-field-full"><span>Descripción (opcional)</span><textarea maxLength={2000} value={seasonDraft.descripcion ?? ''} onChange={(event) => setSeasonDraft({ ...seasonDraft, descripcion: event.target.value })} /></label>
+        <label><span>Inicio · hora Bogotá</span><input type="datetime-local" required value={seasonDraft.fechaInicio} onChange={(event) => setSeasonDraft({ ...seasonDraft, fechaInicio: event.target.value })} /></label>
+        <label><span>Fin · hora Bogotá</span><input type="datetime-local" required value={seasonDraft.fechaFin} onChange={(event) => setSeasonDraft({ ...seasonDraft, fechaFin: event.target.value })} /></label>
+        <label><span>Elemento decorativo</span><select value={seasonDraft.decoracion} onChange={(event) => setSeasonDraft({ ...seasonDraft, decoracion: event.target.value as SeasonDecoration })}>
+          <option value="none">Ninguno</option><option value="stars">Estrellas</option><option value="hearts">Corazones</option><option value="snowflakes">Copos de nieve</option><option value="floral">Flores</option><option value="pumpkins">Calabazas</option><option value="confetti">Confeti</option><option value="leaves">Hojas</option><option value="lights">Luces</option><option value="web">Telarañas</option><option value="fireworks">Fuegos artificiales</option>
+        </select></label>
+        <label><span>Intensidad decorativa · {seasonDraft.intensidad === 0 ? 'sin decoración' : `${seasonDraft.intensidad} de 3`}</span><input type="range" min="0" max="3" step="1" value={seasonDraft.intensidad} onChange={(event) => setSeasonDraft({ ...seasonDraft, intensidad: Number(event.target.value) })} /></label>
+      </div>
+      <div className="season-colors"><h4>Paleta de colores</h4>
+        <div className="season-color-grid">{seasonColorLabels.map(({ key, label }) => <label key={key}><span>{label}</span>
+          <span className="season-color-input"><input type="color" value={seasonDraft.colores[key]} onChange={(event) => setSeasonDraft({ ...seasonDraft, colores: { ...seasonDraft.colores, [key]: event.target.value } })} /><code>{seasonDraft.colores[key]}</code></span>
+        </label>)}</div>
+      </div>
+      {seasonPreview && <div className="season-preview" style={{ backgroundColor: seasonDraft.colores.fondo, color: seasonDraft.colores.texto, borderColor: seasonDraft.colores.acento }}>
+        <div><small style={{ color: seasonDraft.colores.principal }}>VISTA PREVIA · {seasonDraft.tema}</small><h4>{seasonDraft.nombre || 'Tu temporada'}</h4>
+          <p>Así se verá la paleta y los elementos visuales de la tienda durante esta temporada.</p>
+          <button type="button" style={{ backgroundColor: seasonDraft.colores.boton, color: seasonDraft.colores.fondo }}>Explorar colección</button>
+        </div>
+        <span className="season-preview-decoration" style={{ color: seasonDraft.colores.decorativo, opacity: seasonDraft.intensidad / 3 }} aria-hidden="true">{seasonDraft.decoracion === 'none' ? '' : seasonDraft.decoracion === 'hearts' ? '♥' : seasonDraft.decoracion === 'snowflakes' ? '❄' : seasonDraft.decoracion === 'floral' ? '✿' : seasonDraft.decoracion === 'pumpkins' ? '✺' : seasonDraft.decoracion === 'leaves' ? '❧' : seasonDraft.decoracion === 'lights' ? '●  ●  ●' : seasonDraft.decoracion === 'web' ? '✳' : seasonDraft.decoracion === 'fireworks' ? '✺' : seasonDraft.decoracion === 'confetti' ? '✦' : '✧'}</span>
+      </div>}
+      <div className="season-editor-actions">
+        <button type="button" className="btn btn-ghost" onClick={() => setSeasonPreview((current) => !current)}>{seasonPreview ? 'Ocultar vista previa' : 'Vista previa'}</button>
+        <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Guardando…' : 'Guardar temporada'}</button>
+      </div>
+      {seasonPreview && <p className="helper-text" role="status">La vista previa es solo administrativa; no modifica la tienda hasta habilitar la temporada.</p>}
+    </form>}
+    <div className="season-list">
+      {!seasons.length && <p className="empty-state">Todavía no hay temporadas guardadas.</p>}
+      {seasons.map((season) => <article className="season-card" key={season.id} style={{ borderInlineStartColor: season.colores.principal }}>
+        <div className="season-card-heading"><div><h3>{season.nombre}</h3><p>{season.tema}{season.descripcion ? ` · ${season.descripcion}` : ''}</p></div>
+          <span className={`status ${season.estado === 'activa' ? 'status-success' : season.estado === 'finalizada' ? 'status-cancelled' : ''}`}>{season.estado === 'activa' ? 'Activa' : season.estado === 'programada' ? 'Programada' : season.estado === 'finalizada' ? 'Finalizada' : 'Inactiva'}</span>
+        </div>
+        <small>{formatBogotaDate(season.fechaInicio)} — {formatBogotaDate(season.fechaFin)} · Bogotá</small>
+        <div className="season-swatches" aria-label="Colores de la temporada">{seasonColorLabels.map(({ key, label }) => <span key={key} title={label} style={{ backgroundColor: season.colores[key] }} />)}</div>
+        <div className="table-actions">
+          <button type="button" className="btn btn-small" onClick={() => beginEditSeason(season)}>Editar</button>
+          {season.estado !== 'finalizada' && <button type="button" className="btn btn-small" disabled={busy} onClick={() => void runSeasonAction(
+            () => setSeasonActive(token, season.id, !season.habilitada),
+            season.habilitada ? 'Temporada deshabilitada.' : 'Temporada habilitada y programada.',
+          )}>{season.habilitada ? 'Desactivar' : 'Activar'}</button>}
+          <button type="button" className="btn btn-small btn-danger" disabled={busy} onClick={() => {
+            if (window.confirm(`¿Eliminar la temporada "${season.nombre}"?`) && token) {
+              void runSeasonAction(() => deleteSeason(token, season.id), 'Temporada eliminada.');
+            }
+          }}><Trash2 size={14} /> Eliminar</button>
+        </div>
+      </article>)}
+    </div>
+  </section>;
+
   const renderCustomers = () => <section className="panel">
     <div className="section-header"><div><p className="eyebrow">Clientes web y presenciales</p><h2>Base de clientes</h2></div></div>
     <div className="toolbar"><div className="search-field"><Search size={16} /><input type="search" value={customerSearch} onChange={(event) => setCustomerSearch(event.target.value)} placeholder="Buscar nombre, correo o teléfono" /></div></div>
@@ -928,6 +1172,7 @@ function App() {
     orders: renderOrders(),
     pos: renderPos(),
     promotions: renderPromotions(),
+    seasons: renderSeasons(),
     customers: renderCustomers(),
     reviews: renderReviews(),
     administration: renderAdministration(),

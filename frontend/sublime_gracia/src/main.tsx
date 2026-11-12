@@ -8,6 +8,7 @@ import Router from "./Router";
 import Header from "./page/header";
 import Footer from "./page/footer";
 import { Breadcrumbs, CookieConsent, MobileCatalogCta, SeoManager } from "./page/SiteEnhancements";
+import SeasonThemeProvider from "./page/SeasonThemeProvider";
 import "./page/site-enhancements.css";
 import "./style/brand-theme.css";
 
@@ -16,6 +17,7 @@ createRoot(document.getElementById("root")!).render(
     <StrictMode>
 
         <BrowserRouter>
+            <SeasonThemeProvider>
 
             <Header />
             <SeoManager />
@@ -27,6 +29,7 @@ createRoot(document.getElementById("root")!).render(
             <MobileCatalogCta />
             <CookieConsent />
 
+            </SeasonThemeProvider>
         </BrowserRouter>
 
     </StrictMode>

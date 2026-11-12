@@ -5,6 +5,7 @@ export type MenuKey =
   | 'orders'
   | 'pos'
   | 'promotions'
+  | 'seasons'
   | 'customers'
   | 'reviews'
   | 'administration'
@@ -79,6 +80,32 @@ export interface Promotion {
   seleccionEspecifica?: boolean;
   productos?: Array<{ id: number; nombre: string }>;
   presentaciones?: Array<{ id: number; productoId: number; mililitros: number | null }>;
+}
+
+export type SeasonDecoration = 'none' | 'stars' | 'hearts' | 'snowflakes' | 'floral' | 'pumpkins' | 'confetti' | 'leaves' | 'lights' | 'web' | 'fireworks';
+
+export interface SeasonColors {
+  principal: string;
+  secundario: string;
+  acento: string;
+  fondo: string;
+  texto: string;
+  boton: string;
+  decorativo: string;
+}
+
+export interface Season {
+  id: number;
+  nombre: string;
+  descripcion: string | null;
+  tema: string;
+  colores: SeasonColors;
+  decoracion: SeasonDecoration;
+  intensidad: number;
+  fechaInicio: string;
+  fechaFin: string;
+  habilitada: boolean;
+  estado: 'inactiva' | 'programada' | 'activa' | 'finalizada';
 }
 
 export interface Customer {

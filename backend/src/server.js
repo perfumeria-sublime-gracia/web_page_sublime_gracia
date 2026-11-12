@@ -1,6 +1,8 @@
 import app from './app.js'
 import sequelize from '../db/connect.js'
 import '../models/associations.js'
+import { Temporada } from '../models/temporada.model.js'
+import { finalizarTemporadasVencidas } from '../controllers/temporada.controller.js'
 import "dotenv/config"
 
 
@@ -10,6 +12,7 @@ const server  = async () => {
         console.log('conectando a la base de datos')
         await sequelize.authenticate()
         await sequelize.sync({ force: false })
+        await Temporada.sync({ alter: false })
 
         await sequelize.query(`
             ALTER TABLE "productos"
@@ -78,6 +81,59 @@ const server  = async () => {
         `)
 
         await sequelize.query(`
+            CREATE TABLE IF NOT EXISTS "temporadas" (
+                "id" SERIAL PRIMARY KEY,
+                "nombre" VARCHAR(120) NOT NULL,
+                "descripcion" TEXT,
+                "tema" VARCHAR(80) NOT NULL,
+                "colores" JSONB NOT NULL,
+                "decoracion" VARCHAR(30) NOT NULL DEFAULT 'none',
+                "intensidad" INTEGER NOT NULL DEFAULT 1,
+                "fechaInicio" TIMESTAMPTZ NOT NULL,
+                "fechaFin" TIMESTAMPTZ NOT NULL,
+                "habilitada" BOOLEAN NOT NULL DEFAULT false,
+                "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT "temporadas_fecha_valida" CHECK ("fechaFin" > "fechaInicio")
+            )
+        `)
+        await sequelize.query(`
+            ALTER TABLE "temporadas"
+            ADD COLUMN IF NOT EXISTS "intensidad" INTEGER NOT NULL DEFAULT 1
+        `)
+        await sequelize.query(`
+            CREATE INDEX IF NOT EXISTS "temporadas_habilitada_fechaInicio_fechaFin"
+            ON "temporadas" ("habilitada", "fechaInicio", "fechaFin")
+        `)
+        await sequelize.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'temporadas_fecha_valida'
+                      AND conrelid = '"temporadas"'::regclass
+                ) THEN
+                    ALTER TABLE "temporadas"
+                    ADD CONSTRAINT "temporadas_fecha_valida" CHECK ("fechaFin" > "fechaInicio");
+                END IF;
+            END $$;
+        `)
+        await sequelize.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'temporadas_intensidad_valida'
+                      AND conrelid = '"temporadas"'::regclass
+                ) THEN
+                    ALTER TABLE "temporadas"
+                    ADD CONSTRAINT "temporadas_intensidad_valida"
+                    CHECK ("intensidad" BETWEEN 0 AND 3);
+                END IF;
+            END $$;
+        `)
+
+        await sequelize.query(`
             INSERT INTO "productoPresentaciones" ("productoId", "mililitros", "precio", "stock", "activo", "createdAt", "updatedAt")
             SELECT p."id", NULL, p."precio", p."stock", p."activo", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
             FROM "productos" p
@@ -87,6 +143,12 @@ const server  = async () => {
         `)
 
         console.log('conexion lista')
+        await finalizarTemporadasVencidas()
+        setInterval(() => {
+            finalizarTemporadasVencidas().catch((error) => {
+                console.error('No se pudieron finalizar las temporadas vencidas.', error)
+            })
+        }, 60_000)
 
         app.listen(PORT, () => {
             console.log(`servidor corriendo en el puerto http://localhost:${PORT}`)

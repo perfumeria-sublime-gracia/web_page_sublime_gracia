@@ -67,7 +67,7 @@ $env:APP_API_URL = "https://tu-api.example.com"
 
 La aplicación reutiliza los endpoints del proyecto web actual; no crea una base de datos independiente.
 
-## Versión 1.0.4
+## Versión 1.0.5
 
 Las promociones admiten imagen publicitaria y selección automática/manual de
 productos por género y presentación. El backend debe actualizarse para agregar
@@ -80,3 +80,9 @@ Las ventas existentes sin cliente siguen siendo compatibles.
 El envío multipart de promociones conserva los tipos booleanos y arreglos en un
 campo JSON junto a la imagen. El backend también acepta ambos formatos para
 mantener compatibilidad con instaladores anteriores.
+
+La aplicación incorpora el módulo **Temporadas y apariencia**, con plantillas
+festivas, personalización de colores y decoraciones, vista previa aislada,
+programación en hora de Bogotá y activación/desactivación en el backend. La
+tienda pública aplica el tema vigente y lo restaura al vencer. Las decoraciones
+permiten intensidad de 0 a 3 e incluyen luces, telarañas y fuegos artificiales.

@@ -6,6 +6,7 @@ files:
   - electron/**
   - package.json
   - '!**/*.map'
+  - '!node_modules/**'
 directories:
   output: dist-electron
 win:

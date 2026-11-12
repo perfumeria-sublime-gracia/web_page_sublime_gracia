@@ -1,0 +1,135 @@
+REPORTE DE VERSION 1.0.5
+========================
+
+1. FUNCIONALIDADES REVISADAS
+----------------------------
+- Modulo administrativo de Temporadas y Apariencia: plantillas, temporadas
+  personalizadas, vista previa aislada, colores, decoraciones, fechas Bogotá,
+  estados, activacion, desactivacion, edicion y eliminacion.
+- Rutas administrativas protegidas con autenticacion y rol de administrador;
+  endpoint publico de la temporada vigente.
+- Persistencia PostgreSQL y finalizacion automatica en backend. La API publica
+  deja de servir el tema al llegar la fecha final; el servidor deshabilita los
+  registros vencidos al iniciar y los revisa cada minuto.
+- Integracion del tema con las variables visuales de la tienda.
+- Importacion estatica de la imagen Unisex para que Vite la emita en produccion.
+- Configuracion existente de Electron Builder: nombre del producto, icono NSIS
+  y accesos directos.
+
+2. FUNCIONALIDADES NUEVAS O MEJORADAS
+-------------------------------------
+- Se agregaron opciones de decoracion para luces, telaranas y fuegos
+  artificiales, conservando las decoraciones existentes.
+- Intensidad decorativa configurable de 0 a 3, validada en backend y
+  persistida en PostgreSQL.
+- Se ampliaron los estilos tematicos para mantener colores de texto, botones,
+  tarjetas, formularios, navegacion y superficies de las paginas publicas
+  coherentes con cada paleta.
+- Se conserva la preferencia prefers-reduced-motion y las decoraciones no
+  interceptan clics ni bloquean contenido.
+- Electron Builder excluye node_modules del paquete; el renderer ya contiene
+  sus dependencias compiladas.
+- Se actualizaron version y documentacion del administrador a 1.0.5.
+
+3. ARCHIVOS MODIFICADOS O INCORPORADOS
+--------------------------------------
+Administrador:
+- app/package.json
+- app/package-lock.json
+- app/electron-builder.yml
+- app/README.md
+- app/src/App.tsx
+- app/src/api.ts
+- app/src/styles.css
+- app/src/types.ts
+
+Backend:
+- backend/README.md
+- backend/routes/api/index.api.js
+- backend/routes/api/temporadas.js
+- backend/controllers/temporada.controller.js
+- backend/models/temporada.model.js
+- backend/services/temporada.service.js
+- backend/src/server.js
+- backend/migrations/20261120-create-seasons.sql
+- backend/test/seasonService.test.js
+
+Tienda:
+- frontend/sublime_gracia/src/App.tsx
+- frontend/sublime_gracia/src/main.tsx
+- frontend/sublime_gracia/src/page/SeasonThemeProvider.tsx
+- frontend/sublime_gracia/src/style/brand-theme.css
+- frontend/sublime_gracia/src/page/anuncio.tsx (cambio preexistente conservado)
+
+Informe:
+- REPORTE_VERSION_1.0.5.txt
+
+4. PRUEBAS EJECUTADAS Y RESULTADOS
+----------------------------------
+- npm test --prefix backend: 17 pruebas; 16 aprobadas, 0 fallidas y 1 omitida.
+- npm run build --prefix app: correcto; TypeScript y Vite completados.
+- npm run build --prefix frontend\sublime_gracia: correcto; TypeScript y Vite
+  completados.
+- npm run lint -- src\App.tsx src\page\SeasonThemeProvider.tsx src\main.tsx
+  desde frontend\sublime_gracia: correcto.
+- node --check en modulos de temporadas y servidor: correcto.
+- git diff --check: correcto.
+- Vite emitio frontend/sublime_gracia/dist/assets/Buongiorno-VnSzAF7l.jpg
+  (35,517 bytes).
+- npm run dist --prefix app: correcto; electron-builder genero el instalador
+  NSIS para Windows x64.
+- El ejecutable de la aplicacion desempaquetada se abrio durante la prueba,
+  mostro el titulo "Sublime Gracia Admin", respondio y cerro limpiamente.
+- El archivo del instalador es un ejecutable PE de Windows. Version de archivo
+  y producto: 1.0.5. SHA-256:
+  DAADD193F301CCB5D959260A39207B950F6EF39CD06F6C3DBD48A87A2DEEA034
+- El archivo interno app.asar contiene el renderer compilado, Electron y
+  package.json; no contiene node_modules ni codigo de pruebas.
+- Se verifico que los instaladores 1.0.0 a 1.0.4 permanecen en dist-electron.
+
+5. PROBLEMAS ENCONTRADOS Y SOLUCIONES
+-------------------------------------
+- La tienda tenia colores estaticos en algunos componentes que impedían
+  reflejar completamente las paletas. Se conectaron las superficies, textos,
+  controles y botones principales a los colores de temporada.
+- Las decoraciones anteriores no permitian controlar su intensidad ni incluian
+  luces/telaranas/fuegos artificiales. Se ampliaron opciones, validacion,
+  persistencia y estilos sin modificar la estructura de la tienda.
+- La imagen Unisex podia fallar en el build porque estaba referenciada mediante
+  una ruta relativa literal. Se conserva el import estatico procesado por Vite.
+- La prueba de integracion PostgreSQL fue omitida por el runner: requiere
+  RUN_DB_INTEGRATION_TESTS=1 y una base configurada. Por tanto, las operaciones
+  de persistencia, activacion y desactivacion no se probaron contra PostgreSQL.
+- Vite mostro una advertencia no bloqueante sobre la configuracion CommonJS/
+  ESM existente. Las compilaciones finalizaron correctamente.
+
+6. VERSION CONFIGURADA
+----------------------
+1.0.5 en app/package.json y app/package-lock.json. Electron Builder toma la
+version del package.json para el nombre y metadatos del instalador.
+
+7. INSTALADOR GENERADO
+----------------------
+C:\Users\PCUSER\Desktop\Proyectos\sublime-gracia\app\dist-electron\Sublime Gracia Admin-1.0.5.exe
+
+Tamano: 102,189,052 bytes.
+Se genero tambien el mapa de bloques NSIS correspondiente.
+
+8. CONFIRMACION DE PRUEBA DEL INSTALADOR
+----------------------------------------
+El empaquetado NSIS completo y la validez PE del instalador fueron verificados.
+Se probo el arranque del ejecutable de aplicacion generado por el paquete, no
+la instalacion interactiva del archivo NSIS. El instalador no se ejecuto para
+instalar en Windows y no se verifico un ciclo de desinstalacion.
+
+9. TAREAS PENDIENTES
+--------------------
+- Desplegar las actualizaciones del backend y la tienda publica cuando se
+  autorice. El nuevo instalador administrativo usa la URL de produccion ya
+  configurada y requiere que el backend desplegado exponga las rutas de
+  temporadas.
+- Aplicar o dejar que el servidor ejecute la migracion idempotente en la base
+  de datos correspondiente. No se conecto ni modifico la base de produccion.
+- Ejecutar pruebas de integracion de CRUD, activacion, conflicto de fechas,
+  expiracion y persistencia con una base PostgreSQL de pruebas.
+- Probar la instalacion interactiva del NSIS en un entorno Windows aislado.

@@ -7,6 +7,7 @@ import type {
   Promotion,
   Review,
   SaleRequest,
+  Season,
 } from './types';
 
 declare global {
@@ -147,6 +148,19 @@ export const updateOrderState = (
 
 export const fetchDashboard = (token: string) => apiFetch<DashboardStats>('/api/admin/dashboard', {}, token);
 export const fetchPromotions = (token: string) => apiFetch<Promotion[]>('/api/promociones', {}, token);
+export const fetchSeasons = (token: string) => apiFetch<Season[]>('/api/admin/temporadas', {}, token);
+export const saveSeason = (token: string, season: Omit<Season, 'id' | 'estado'> & { id?: number }) =>
+  apiFetch<Season>(season.id ? `/api/admin/temporadas/${season.id}` : '/api/admin/temporadas', {
+    method: season.id ? 'PUT' : 'POST',
+    body: JSON.stringify(season),
+  }, token);
+export const setSeasonActive = (token: string, id: number, habilitada: boolean) =>
+  apiFetch<Season>(`/api/admin/temporadas/${id}/estado`, {
+    method: 'PATCH',
+    body: JSON.stringify({ habilitada }),
+  }, token);
+export const deleteSeason = (token: string, id: number) =>
+  apiFetch<{ message: string }>(`/api/admin/temporadas/${id}`, { method: 'DELETE' }, token);
 export const savePromotion = (token: string, promotion: Omit<Promotion, 'id' | 'productos' | 'presentaciones'> & {
   id?: number;
   productIds: number[];

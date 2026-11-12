@@ -41,6 +41,18 @@ repositorio:
 psql $env:DATA_BASE_URL -f backend\migrations\20261112-add-promotion-image-and-specific-selection.sql
 ```
 
+Las temporadas visuales se crean automáticamente al iniciar el servidor y se
+pueden aplicar manualmente desde la raíz del repositorio:
+
+```powershell
+psql $env:DATA_BASE_URL -f backend\migrations\20261120-create-seasons.sql
+```
+
+El servidor deshabilita las temporadas vencidas al iniciar y las revisa cada
+minuto. El tema público consulta la temporada vigente sin requerir una sesión
+administrativa. Los estilos permiten elegir una decoración (incluidas luces,
+telarañas y fuegos artificiales) y ajustar su intensidad de 0 a 3.
+
 ## Variables de entorno
 
 | Variable | Descripción |
@@ -79,6 +91,7 @@ que el token corresponda a un usuario con rol `admin`.
 | `GET` | `/api/productos/:id` | Producto por ID. |
 | `GET` | `/api/promociones` | Listado de promociones. |
 | `GET` | `/api/promociones/:id` | Promoción por ID. |
+| `GET` | `/api/temporadas/activa` | Tema visual público vigente (o `null`). |
 | `GET` | `/api/anuncio` | Anuncios. |
 | `GET` | `/api/opiniones` | Opiniones y reseñas. |
 | `POST` | `/api/opiniones` | Crear una reseña. |
@@ -108,6 +121,11 @@ Cuando no existe un identificador válido, la consulta devuelve un carrito vací
 | `PUT` | `/api/promociones/:id` | Actualizar una promoción. |
 | `PATCH` | `/api/promociones/:id/estado` | Cambiar el estado de una promoción. |
 | `DELETE` | `/api/promociones/:id` | Eliminar una promoción. |
+| `GET` | `/api/admin/temporadas` | Listar y consultar estados de temporadas. |
+| `POST` | `/api/admin/temporadas` | Crear una temporada visual. |
+| `PUT` | `/api/admin/temporadas/:id` | Actualizar una temporada visual. |
+| `PATCH` | `/api/admin/temporadas/:id/estado` | Habilitar o deshabilitar una temporada. |
+| `DELETE` | `/api/admin/temporadas/:id` | Eliminar una temporada. |
 | `GET` | `/api/admin/pedidos` | Listar pedidos. |
 | `GET` | `/api/admin/pedidos/:id` | Consultar un pedido. |
 | `PUT` | `/api/admin/pedidos/:id/confirmar` | Confirmar un pedido. |
