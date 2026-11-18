@@ -287,6 +287,92 @@
     text-transform: uppercase;
 }
 
+/* BUSCADOR DEL CATÁLOGO */
+.buscador-catalogo {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    margin: 30px auto;
+    display: flex;
+    align-items: center;
+}
+
+/* Campo de búsqueda */
+.buscador-catalogo input {
+    width: 100%;
+    height: 52px;
+    padding: 0 50px 0 20px;
+    border: 1px solid #d8c6a0;
+    border-radius: 30px;
+    outline: none;
+
+    background-color: #fffdf9;
+    color: #29251f;
+
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+/* Placeholder */
+.buscador-catalogo input::placeholder {
+    color: #a69b89;
+    font-weight: 400;
+}
+
+/* Efecto al seleccionar */
+.buscador-catalogo input:focus {
+    border-color: #b9975b;
+    box-shadow: 0 0 0 3px rgba(185, 151, 91, 0.12);
+    background-color: #ffffff;
+}
+
+/* Botón para limpiar */
+.buscador-catalogo button {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    width: 28px;
+    height: 28px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+
+    color: #a18a62;
+    font-size: 17px;
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+.buscador-catalogo button:hover {
+    background-color: #f2eadc;
+    color: #66502e;
+}
+
+/* Adaptación para móviles */
+@media (max-width: 600px) {
+    .buscador-catalogo {
+        max-width: 100%;
+        margin: 22px auto;
+    }
+
+    .buscador-catalogo input {
+        height: 48px;
+        font-size: 13px;
+    }
+}
+
 
 /* =========================================================
    NOMBRE
