@@ -4,6 +4,7 @@ import { Productos } from "../models/products.model.js";
 import { ProductoPresentacion } from "../models/productoPresentacion.model.js";
 import { InventarioMovimiento } from "../models/inventarioMovimiento.model.js";
 import db from "../db/connect.js";
+import { obtenerComprobante } from "../services/receiptStorage.js";
 
 
 // =========================
@@ -82,6 +83,33 @@ export const getPedido = async (req, res) => {
         return res.status(500).json({
             message: "Error al obtener pedido",
             error: error.message
+        });
+    }
+};
+
+export const getPedidoComprobante = async (req, res) => {
+    try {
+        const pedido = await Pedido.findByPk(req.params.id, {
+            attributes: ["id", "comprobante"]
+        });
+
+        if (!pedido?.comprobante) {
+            return res.status(404).json({ message: "No se encontró el comprobante del pedido." });
+        }
+
+        const comprobante = await obtenerComprobante(pedido.comprobante);
+        const filename = comprobante.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+        return res.status(200).set({
+            "Cache-Control": "private, no-store",
+            "Content-Disposition": `inline; filename="${filename}"`,
+            "Content-Security-Policy": "sandbox",
+            "Content-Type": comprobante.contentType,
+            "X-Content-Type-Options": "nosniff"
+        }).send(comprobante.buffer);
+    } catch (error) {
+        console.error("Error al obtener el comprobante del pedido:", error);
+        return res.status(error.statusCode || 500).json({
+            message: error.message || "No se pudo obtener el comprobante del pedido."
         });
     }
 };

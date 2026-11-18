@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
     getPedidos,
     getPedido,
+    getPedidoComprobante,
     confirmarPedido,
     rechazarPedido,
     cancelarPedido,
@@ -22,6 +23,12 @@ router.get(
     "/admin/pedidos",
     verifyToken, verifyAdmin,
     getPedidos
+);
+
+router.get(
+    "/admin/pedidos/:id/comprobante",
+    verifyToken, verifyAdmin,
+    getPedidoComprobante
 );
 
 // Obtener un pedido

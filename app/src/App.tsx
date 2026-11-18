@@ -34,6 +34,7 @@ import {
   fetchDashboard,
   fetchInventoryMovements,
   fetchOrders,
+  fetchOrderReceipt,
   fetchProducts,
   fetchPromotions,
   fetchReviews,
@@ -733,6 +734,33 @@ function App() {
     );
   };
 
+  const openOrderReceipt = async (order: Order) => {
+    if (!token) return;
+
+    const receiptWindow = window.open('', '_blank');
+    if (!receiptWindow) {
+      setError('No se pudo abrir el comprobante. Permite ventanas nuevas e inténtalo otra vez.');
+      return;
+    }
+    receiptWindow.opener = null;
+    setError('');
+
+    try {
+      const receipt = await fetchOrderReceipt(token, order.id);
+      const receiptUrl = URL.createObjectURL(receipt);
+      receiptWindow.location.replace(receiptUrl);
+      const cleanup = window.setInterval(() => {
+        if (receiptWindow.closed) {
+          window.clearInterval(cleanup);
+          URL.revokeObjectURL(receiptUrl);
+        }
+      }, 1000);
+    } catch (requestError) {
+      receiptWindow.close();
+      setError(requestError instanceof Error ? requestError.message : 'No se pudo abrir el comprobante.');
+    }
+  };
+
   const renderDashboard = () => {
     const metricCards = [
       ['Ventas del día', formatCurrency(stats.ventasHoy), 'Órdenes pagadas o en proceso'],
@@ -882,7 +910,10 @@ function App() {
           }}>
             <option value="">Cambiar estado</option>{(['preparando', 'enviado', 'entregado', 'cancelado', 'rechazado'] as OrderState[]).map((state) => <option value={state} key={state}>{state}</option>)}
           </select>}
-          {order.comprobante && <a className="btn btn-small" href={imageUrl(order.comprobante)} target="_blank" rel="noreferrer">Comprobante</a>}
+          {order.comprobante && <a className="btn btn-small" href="#" onClick={(event) => {
+            event.preventDefault();
+            void openOrderReceipt(order);
+          }}>Comprobante</a>}
         </div></td>
       </tr>)}
       {expandedOrder && orders.find((order) => order.id === expandedOrder) && <tr className="expanded-order"><td colSpan={7}>

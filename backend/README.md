@@ -66,6 +66,7 @@ telarañas y fuegos artificiales) y ajustar su intensidad de 0 a 3.
 | `GITHUB_REPO` | Repositorio público donde se guardan las imágenes. |
 | `GITHUB_BRANCH` | Rama existente del repositorio de imágenes. |
 | `GITHUB_IMAGES_DIRECTORY` | Directorio de imágenes de productos y promociones dentro del repositorio; por defecto, `imagenes/productos`. |
+| `GITHUB_RECEIPTS_DIRECTORY` | Directorio de comprobantes dentro del repositorio de GitHub. Si se omite, se usa el almacenamiento local de comprobantes. |
 
 No agregues `.env` ni tokens al repositorio. La configuración de GitHub es
 opcional en desarrollo local: si las cinco variables `GITHUB_*` están vacías,
@@ -128,6 +129,7 @@ Cuando no existe un identificador válido, la consulta devuelve un carrito vací
 | `DELETE` | `/api/admin/temporadas/:id` | Eliminar una temporada. |
 | `GET` | `/api/admin/pedidos` | Listar pedidos. |
 | `GET` | `/api/admin/pedidos/:id` | Consultar un pedido. |
+| `GET` | `/api/admin/pedidos/:id/comprobante` | Consultar de forma autenticada el comprobante del pedido; usa GitHub y conserva el almacenamiento local como alternativa. |
 | `PUT` | `/api/admin/pedidos/:id/confirmar` | Confirmar un pedido. |
 | `PUT` | `/api/admin/pedidos/:id/rechazar` | Rechazar un pedido. |
 | `PUT` | `/api/admin/pedidos/:id/cancelar` | Cancelar un pedido. |

@@ -1,0 +1,115 @@
+ACTUALIZACION SUBLIME GRACIA ADMIN 1.0.6
+
+1. Archivos modificados
+
+- app/package.json
+- app/package-lock.json
+- app/src/api.ts
+- app/src/App.tsx
+- backend/controllers/adminPedido.controller.js
+- backend/routes/api/adminPedidoRoutes.js
+- backend/services/receiptStorage.js (nuevo)
+- backend/test/receiptStorage.test.js (nuevo)
+- backend/README.md
+- ACTUALIZACION_VERSION_1.0.6.txt (este informe)
+
+No se modificaron backend/.env.example ni frontend/sublime_gracia/src/page/Checkout.tsx;
+ambos ya tenían cambios locales previos, que se conservaron.
+
+2. Cambios realizados
+
+- app/src/api.ts: agrega fetchOrderReceipt, que usa el endpoint del backend y el
+  token de administrador para recibir una imagen binaria.
+- app/src/App.tsx: el enlace Comprobante abre la imagen obtenida con el endpoint
+  autenticado. Informa errores de permisos, red o archivo faltante.
+- backend/services/receiptStorage.js: busca el nombre del archivo en el
+  directorio de GitHub configurado. Si no está allí, intenta el almacenamiento
+  local existente. No construye ni devuelve enlaces privados.
+- backend/controllers/adminPedido.controller.js: añade el controlador que busca
+  el pedido por ID y devuelve el archivo con cabeceras privadas y de seguridad.
+- backend/routes/api/adminPedidoRoutes.js: añade la ruta protegida por verifyToken
+  y verifyAdmin.
+- backend/test/receiptStorage.test.js: agrega pruebas de GitHub, fallback local,
+  errores, credenciales y protección administrativa.
+- backend/README.md: documenta la variable y el endpoint.
+- app/package.json y app/package-lock.json: actualizan la versión a 1.0.6.
+
+No se modificó el almacenamiento de pedidos ni la carga de pagos. Los
+comprobantes nuevos que permanezcan localmente continúan disponibles mediante
+el fallback.
+
+3. Recuperación desde GitHub
+
+La aplicación obtiene el comprobante mediante:
+
+  GET /api/admin/pedidos/:id/comprobante
+
+La llamada requiere Authorization: Bearer <token> de administrador. El backend
+consulta el archivo mediante GitHub Contents API, usando el nombre de archivo
+que ya está guardado en pedido.comprobante. El token de GitHub permanece en el
+backend. La respuesta binaria se entrega directamente a la aplicación; no se
+envían al cliente URLs privadas de GitHub. Ante una ausencia en GitHub se
+intenta leer UPLOADS_DIR/comprobantes; si falta en ambos lugares se responde
+404.
+
+4. Variables de entorno
+
+- GITHUB_TOKEN
+- GITHUB_OWNER
+- GITHUB_REPO
+- GITHUB_BRANCH
+- GITHUB_RECEIPTS_DIRECTORY
+- UPLOADS_DIR (opcional; raíz del fallback local)
+- JWT_SECRET (configuración existente para proteger rutas administrativas)
+
+GITHUB_RECEIPTS_DIRECTORY ya estaba presente en el cambio local previo de
+backend/.env.example. Si no se configura, el servicio conserva el fallback
+local. El token de GitHub no se incluye en el renderer ni en los archivos
+compilados de Electron.
+
+5. Pruebas ejecutadas
+
+- node --test test\receiptStorage.test.js:
+  6 aprobadas, 0 fallidas. La lectura desde GitHub y la seguridad del endpoint
+  se comprobaron con respuestas simuladas; también se verificaron fallback
+  local, archivo inexistente y configuración incompleta.
+- npm test (backend):
+  25 aprobadas, 0 fallidas, 1 prueba de integración omitida por su configuración
+  RUN_DB_INTEGRATION_TESTS.
+- npm run build (app):
+  compilación TypeScript y Vite aprobadas.
+- npm run dist (app):
+  empaquetado NSIS x64 aprobado.
+- Búsqueda en app/dist de GITHUB_TOKEN, GITHUB_RECEIPTS_DIRECTORY y el token
+  ficticio de prueba: sin coincidencias.
+- GitHub real, directorio configurado: respondió 404. El árbol completo del
+  repositorio no contiene rutas con "comprobante", "receipt" o "pago".
+- Base de datos real: hay 9 pedidos con referencia a comprobante. Se probó el
+  pedido más antiguo y el más reciente contra el endpoint local; ambos
+  respondieron 404 porque sus archivos no existen en el directorio GitHub
+  configurado ni en el almacenamiento local disponible en este entorno.
+
+Por lo tanto, no se pudo confirmar la visualización real de comprobantes
+antiguos ni recientes. La visualización está probada con respuestas
+simuladas; para validar los archivos reales se necesita que estén disponibles
+en el repositorio/directorio configurado o en UPLOADS_DIR/comprobantes.
+
+6. Compatibilidad y seguridad
+
+No se cambiaron inicio de sesión, permisos, API base, conexión PostgreSQL,
+lógica de pagos, productos, promociones, inventario, reportes ni el sitio
+público. La ruta nueva mantiene la autorización de administrador. No se
+encontró GITHUB_TOKEN ni GITHUB_RECEIPTS_DIRECTORY en el bundle del renderer.
+El nombre, icono, NSIS y opciones de instalación existentes se conservaron.
+
+7. Instalador
+
+  C:\Users\PCUSER\Desktop\Proyectos\sublime-gracia\app\dist-electron\Sublime Gracia Admin-1.0.6.exe
+
+También se generó el archivo de actualización:
+
+  C:\Users\PCUSER\Desktop\Proyectos\sublime-gracia\app\dist-electron\Sublime Gracia Admin-1.0.6.exe.blockmap
+
+El instalador 1.0.5 se conservó. Para que la aplicación instalada recupere
+comprobantes en producción, primero se debe desplegar el endpoint nuevo en el
+backend y configurar/poblar el directorio de GitHub con los archivos.

@@ -165,7 +165,7 @@ const Checkout = () => {
     const total = calcularTotal();
 
     const copiarNumeroNequi = async () => {
-        const numero = "300XXXXXXXX";
+        const numero = "3017089860";
 
         try {
             if (navigator.clipboard?.writeText) {

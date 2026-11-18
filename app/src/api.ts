@@ -136,6 +136,37 @@ export const deleteProduct = (token: string, id: number) =>
 
 export const fetchOrders = (token: string) => apiFetch<Order[]>('/api/admin/pedidos', {}, token);
 
+export const fetchOrderReceipt = async (token: string, orderId: string): Promise<Blob> => {
+  const baseUrl = await resolveBaseUrl();
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/api/admin/pedidos/${encodeURIComponent(orderId)}/comprobante`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (error) {
+    console.error('No se pudo conectar con el backend para consultar el comprobante.', { url: baseUrl, error });
+    throw new Error('No hay conexión con el servidor para consultar el comprobante.');
+  }
+
+  if (!response.ok) {
+    let data: { message?: string; error?: string } | null = null;
+    try {
+      data = await response.json() as { message?: string; error?: string };
+    } catch {
+      // The endpoint may return an empty error response.
+    }
+    if (response.status === 401) throw new Error('La sesión expiró o el token no es válido. Inicia sesión nuevamente.');
+    if (response.status === 403) throw new Error('Tu cuenta no tiene permisos de administrador.');
+    throw new Error(data?.message || data?.error || `Error del servidor (${response.status}).`);
+  }
+
+  const contentType = response.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase();
+  if (!contentType?.startsWith('image/') || contentType === 'image/svg+xml') {
+    throw new Error('El archivo del comprobante no es una imagen compatible.');
+  }
+  return response.blob();
+};
+
 export const updateOrderState = (
   token: string,
   id: string,
