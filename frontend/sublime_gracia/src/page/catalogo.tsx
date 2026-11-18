@@ -43,6 +43,7 @@ const Catalogo = () => {
     const [items, setItems] = useState<Item[]>([])
     const [productosCompatibilidad, setProductosCompatibilidad] = useState<Item[] | null>(null)
     const [categorias, setCategorias] = useState<string[]>([])
+    const [busqueda, setBusqueda] = useState("")
     const [hayMas, setHayMas] = useState(false)
     const [cargando, setCargando] = useState(true)
     const [cargandoMas, setCargandoMas] = useState(false)
@@ -57,27 +58,45 @@ const Catalogo = () => {
     const [presentacionSeleccionada, setPresentacionSeleccionada] = useState<Record<number, number>>({})
     const [mensajeCarrito, setMensajeCarrito] = useState<{ tipo: "exito" | "error"; texto: string } | null>(null)
     const mensajeTimeout = useRef<number | undefined>(undefined)
+    const solicitudCatalogo = useRef(0)
 
     const API_URL = `${import.meta.env.VITE_API_URL}/api`
 
     useEffect(() => {
         let cancelado = false
+        const controller = new AbortController()
+        const solicitud = ++solicitudCatalogo.current
+        const textoBusqueda = busqueda.trim()
 
-        axios.get(`${API_URL}/catalogo`, {
-            params: {
-                pagina: 1,
-                ...(categoria !== "todo" ? { categoria } : {}),
-                ...(genero !== "todos" ? { genero } : {})
-            }
-        })
-            .then((res) => {
-                if (cancelado) return
+        setItems([])
+        setProductosCompatibilidad(null)
+        setHayMas(false)
+        setError(null)
+        setCargando(true)
+
+        const cargarCatalogo = async () => {
+            try {
+                const res = await axios.get(`${API_URL}/catalogo`, {
+                    params: {
+                        pagina: 1,
+                        ...(textoBusqueda ? { busqueda: textoBusqueda } : {}),
+                        ...(categoria !== "todo" ? { categoria } : {}),
+                        ...(genero !== "todos" ? { genero } : {})
+                    },
+                    signal: controller.signal
+                })
+
                 if (Array.isArray(res.data)) {
+                    if (textoBusqueda) {
+                        throw new Error("El servidor no admite búsquedas del catálogo.")
+                    }
+
                     const productosFiltrados = res.data.filter((item: Item) => {
                         const coincideCategoria = categoria === "todo" || item.segmentacion === categoria
                         const coincideGenero = genero === "todos" || item.genero.trim().toUpperCase() === genero
                         return coincideCategoria && coincideGenero
                     })
+                    if (cancelado || solicitud !== solicitudCatalogo.current) return
                     setProductosCompatibilidad(productosFiltrados)
                     setItems(productosFiltrados.slice(0, 20))
                     setCategorias([...new Set(res.data.map((item: Item) => item.segmentacion).filter(Boolean))])
@@ -89,33 +108,39 @@ const Catalogo = () => {
                     throw new Error(res.data?.message || "La respuesta del catálogo no tiene un formato válido")
                 }
 
+                if (cancelado || solicitud !== solicitudCatalogo.current) return
                 setProductosCompatibilidad(null)
                 setItems(res.data.productos)
                 setCategorias(Array.isArray(res.data.categorias) ? res.data.categorias : [])
                 setHayMas(res.data.hayMas === true)
-            })
-            .catch((error) => {
-                if (!cancelado) {
+            } catch (error: unknown) {
+                if (!cancelado && !controller.signal.aborted && solicitud === solicitudCatalogo.current) {
                     setItems([])
                     setCategorias([])
                     setHayMas(false)
-                    setError(error.response?.data?.message || error.message)
+                    const errorAxios = axios.isAxiosError(error) ? error : null
+                    setError(errorAxios?.response?.data?.message || (error instanceof Error ? error.message : "Error obteniendo productos"))
                 }
-            })
-            .finally(() => {
-                if (!cancelado) setCargando(false)
-            })
+            } finally {
+                if (!cancelado && solicitud === solicitudCatalogo.current) setCargando(false)
+            }
+        }
+
+        const timeout = window.setTimeout(cargarCatalogo, textoBusqueda ? 300 : 0)
 
         return () => {
             cancelado = true
+            window.clearTimeout(timeout)
+            controller.abort()
         }
-    }, [API_URL, categoria, genero])
+    }, [API_URL, busqueda, categoria, genero])
 
     const cargarMas = async () => {
         if (!hayMas || cargandoMas) return
 
         setCargandoMas(true)
         setError(null)
+        const solicitud = solicitudCatalogo.current
         try {
             if (productosCompatibilidad) {
                 const siguienteLote = productosCompatibilidad.slice(items.length, items.length + 20)
@@ -128,10 +153,12 @@ const Catalogo = () => {
             const response = await axios.get(`${API_URL}/catalogo`, {
                 params: {
                     pagina,
+                    ...(busqueda.trim() ? { busqueda: busqueda.trim() } : {}),
                     ...(categoria !== "todo" ? { categoria } : {}),
                     ...(genero !== "todos" ? { genero } : {})
                 }
             })
+            if (solicitud !== solicitudCatalogo.current) return
             const productos = Array.isArray(response.data)
                 ? response.data
                 : response.data?.productos
@@ -141,7 +168,9 @@ const Catalogo = () => {
             setItems((actuales) => [...actuales, ...productos])
             setHayMas(Array.isArray(response.data) ? false : response.data.hayMas === true)
         } catch (error: any) {
-            setError(error.response?.data?.message || error.message)
+            if (solicitud === solicitudCatalogo.current) {
+                setError(error.response?.data?.message || error.message)
+            }
         } finally {
             setCargandoMas(false)
         }
@@ -211,6 +240,26 @@ const agregarAlCarrito = async (productId: number, presentacionId?: number) => {
                 
             <h1>Nuestras Fragancias</h1>
 
+            <div className="buscador-catalogo">
+                <input
+                    type="search"
+                    placeholder="Buscar una fragancia..."
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    aria-label="Buscar fragancias"
+                />
+
+                {busqueda && (
+                    <button
+                        type="button"
+                        onClick={() => setBusqueda("")}
+                        aria-label="Limpiar búsqueda"
+                    >
+                        ✕
+                    </button>
+                )}
+            </div>
+
             <div className="categorias">
 
                 <button
@@ -274,7 +323,11 @@ const agregarAlCarrito = async (productId: number, presentacionId?: number) => {
             )}
 
             <div className="productos">
-                {!cargando && items.length === 0 && <p>No hay productos para mostrar.</p>}
+                {!cargando && !error && items.length === 0 && (
+                    <p>{busqueda.trim()
+                        ? `No se encontraron fragancias que comiencen por "${busqueda.trim()}".`
+                        : "No hay productos para mostrar."}</p>
+                )}
                 {cargando && <p>Cargando productos...</p>}
 
                 {items.map((item) => (

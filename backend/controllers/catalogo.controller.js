@@ -222,6 +222,16 @@ export const getAllProducts = async (req, res) => {
                 { activo: null }
             ]
         };
+        const busqueda = typeof req.query.busqueda === "string"
+            ? req.query.busqueda.trim()
+            : "";
+
+        if (busqueda) {
+            const prefijo = busqueda.replace(/[\\%_]/g, "\\$&");
+            where.nombre = {
+                [Sequelize.Op.iLike]: `${prefijo}%`
+            };
+        }
 
         if (req.query.categoria) {
             where.segmentacion = req.query.categoria;

@@ -1,0 +1,121 @@
+IMPLEMENTACION DEL BUSCADOR DEL CATALOGO
+
+1. Problema encontrado
+
+El buscador se ejecutaba en el navegador sobre los productos ya descargados.
+El endpoint GET /api/catalogo entrega el catálogo paginado en grupos de 20 y
+no aplicaba ningún criterio de búsqueda.
+
+2. Causa exacta de que Solo no apareciera al buscar "so"
+
+La causa observada en producción es que los despliegues no contienen la
+implementación actual del workspace. La página publicada no presenta un campo
+de búsqueda y el endpoint publicado ignora busqueda: devuelve el catálogo
+normal de 20 productos por página. Por eso Solo (id 19) aparece en la página 2
+del catálogo normal, pero no en la primera respuesta al solicitar busqueda=so.
+
+La consulta real de PostgreSQL confirma que el producto sí existe como "SOLO",
+está activo y tiene género HOMBRE y categoría "Otros". Sin filtros de categoría
+ni género no hay una condición de disponibilidad que lo excluya. El endpoint
+local con el código actual devuelve Solo en la primera página para los cinco
+prefijos probados.
+
+La causa no está en la columna, el operador ILIKE, el formato de respuesta ni
+la paginación del código local. Los cambios anteriores están sin commit en
+main, mientras los servicios publicados siguen sirviendo versiones anteriores.
+
+3. Archivos modificados
+
+- backend/controllers/catalogo.controller.js
+- backend/test/catalogoSearch.test.js
+- frontend/sublime_gracia/src/page/catalogo.tsx
+- IMPLEMENTACION_BUSCADOR_CATALOGO.txt
+
+4. Cambios realizados en frontend
+
+- Se envía el texto recortado al endpoint como parámetro busqueda.
+- La búsqueda se aplica en el servidor; ya no se usa items.filter() para
+  determinar los resultados.
+- Se espera 300 ms mientras se escribe, se abortan solicitudes anteriores y se
+  ignoran respuestas obsoletas.
+- Se vacían los resultados anteriores al iniciar una carga nueva y se muestra
+  el estado de carga.
+- Se envían juntos búsqueda, categoría, género y página.
+- "Cargar más" solicita la siguiente página de resultados de búsqueda.
+- Al borrar el texto se solicita de nuevo el catálogo normal.
+- Se muestra un mensaje sin resultados para una búsqueda vacía de coincidencias.
+- Se conservan las tarjetas, presentaciones, precios, promociones, imágenes,
+  detalles, disponibilidad y acción existente para agregar al carrito.
+
+5. Cambios realizados en backend
+
+- GET /api/catalogo acepta busqueda y elimina espacios al inicio y al final.
+- La búsqueda se combina con los filtros existentes de categoría, género y
+  productos activos; se mantiene el ordenamiento existente.
+- El límite de 20 productos se conserva y los resultados se recuperan mediante
+  pagina y "Cargar más", sin intentar traer solo una página para buscar.
+- Se conserva la carga separada de presentaciones y el cálculo de promociones.
+- Se escapan los caracteres especiales de LIKE para tratarlos como texto literal.
+
+6. Consulta utilizada
+
+Sequelize aplica el operador PostgreSQL Op.iLike al campo nombre, con un
+parámetro que consiste en el texto de búsqueda escapado seguido de "%".
+Equivale a:
+
+  LOWER(nombre) LIKE LOWER(:busqueda) || '%'
+
+El filtro se construye con el operador Sequelize y no concatena el texto del
+usuario en SQL. Para la búsqueda "so", el patrón enviado a ILIKE es "so%".
+
+7. Pruebas ejecutadas y resultados
+
+- node --test --test-name-pattern "catalog search" test\catalogoSearch.test.js
+  Resultado: 2 pruebas aprobadas. Verifican recorte, prefijo sin distinción de
+  mayúsculas, combinación de filtros, productos activos, paginación y escape de
+  comodines.
+- npm test (backend)
+  Resultado: 19 aprobadas, 0 fallidas, 1 prueba de integración omitida. La
+  prueba omitida requiere configurar RUN_DB_INTEGRATION_TESTS y PostgreSQL.
+- npm run build (frontend/sublime_gracia)
+  Resultado: compilación TypeScript y build de Vite aprobados.
+- git diff --check
+  Resultado: sin errores de espacios en los cambios.
+- PostgreSQL real, consulta parametrizada:
+  SELECT id, nombre, activo, genero, segmentacion FROM productos
+  WHERE LOWER(nombre) LIKE LOWER(:patron)
+  con patron="so%": 1 fila, id=19, nombre="SOLO", activo=true,
+  genero=HOMBRE, segmentacion=Otros.
+- La misma consulta con prefijos so, SO, So, sol y solo devolvió una fila
+  "SOLO" en cada caso.
+- Endpoint publicado GET /api/catalogo?busqueda=so&pagina=1:
+  HTTP 200, 20 productos, ninguno llamado Solo, hayMas=true.
+  Página 2: HTTP 200, 17 productos, incluye Solo, hayMas=false.
+  La página 1 fue idéntica para so, SO, So, sol, solo y zz-no-match.
+  Esto confirma que el endpoint publicado ignora el parámetro busqueda.
+- Endpoint local GET /api/catalogo?busqueda=so y variantes SO, So, sol y solo:
+  HTTP 200, un producto por respuesta: SOLO; hayMas=false.
+  La página 2 para busqueda=so devolvió 0 productos.
+- Frontend publicado abierto en navegador: no contiene el campo de búsqueda.
+- Frontend local con API y base reales: Playwright observó la solicitud
+  /api/catalogo?pagina=1&busqueda=SO y el encabezado de producto "SOLO".
+
+La prueba del carrito y los filtros con interacción de usuario no se ejecutó.
+
+8. Compatibilidad con funcionalidades anteriores
+
+No se modificaron las reglas de promociones, presentaciones, precios,
+disponibilidad/inventario, imágenes, detalles/opiniones ni la solicitud del
+carrito. Se mantienen los filtros de categoría y los géneros HOMBRE, MUJER y
+UNISEX. La búsqueda y el catálogo normal usan el mismo orden y paginación del
+endpoint. La compilación, las pruebas existentes y la búsqueda integrada local
+no detectaron regresiones. No se verificó el carrito en una compra real.
+
+9. Problemas pendientes
+
+La producción sigue sin corregir hasta desplegar en los servicios de frontend
+y backend los cambios locales de catalogo.tsx y catalogo.controller.js. No se
+realizó ni se afirma un despliegue remoto. Después del despliegue se debe
+repetir en la URL publicada la búsqueda de Solo, los filtros, el borrado de la
+búsqueda y la paginación; también queda pendiente probar el carrito de forma
+integrada.
